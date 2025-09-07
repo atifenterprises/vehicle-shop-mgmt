@@ -27,6 +27,7 @@ const Customer = () => {
 
   if (loading) {
     return <div>Loading customers...</div>;
+    // testing the git repo
   }
 
   if (error) {
