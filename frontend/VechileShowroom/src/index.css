@@ -168,8 +168,7 @@ body, html, #root {
 .metrics {
   display: flex;
   gap: 1rem;
-  flex-wrap: nowrap;
-  overflow-x: auto;
+  flex-wrap: wrap;
   padding-bottom: 1rem;
 }
 
@@ -178,7 +177,8 @@ body, html, #root {
   border-radius: 12px;
   box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
   padding: 1rem 1.5rem;
-  flex: 0 0 auto;
+  flex: 1 1 250px;
+  min-width: 250px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -246,10 +246,8 @@ body, html, #root {
 .charts {
   display: flex;
   gap: 1rem;
-  flex-wrap: nowrap;
-  overflow-x: auto;
+  flex-wrap: wrap;
   padding-bottom: 1rem;
-  -webkit-overflow-scrolling: touch;
 }
 
 .chart-card {
@@ -257,7 +255,8 @@ body, html, #root {
   border-radius: 12px;
   box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
   padding: 1rem 1.5rem;
-  flex: 0 0 auto;
+  flex: 1 1 400px;
+  min-width: 400px;
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -267,32 +266,57 @@ body, html, #root {
   display: flex;
   align-items: flex-end;
   gap: 0.5rem;
-  height: 8rem;
+  height: 12rem;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
-  padding: 0.5rem;
+  padding: 2rem 0.5rem 2rem 0.5rem;
+  position: relative;
+  overflow: hidden;
 }
 
 .bar {
   background-color: #3b82f6;
-  width: 1.5rem;
+  width: 2rem;
   display: flex;
-  justify-content: center;
-  align-items: flex-end;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
   border-radius: 4px 4px 0 0;
   color: white;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 700;
   cursor: default;
   position: relative;
+  min-height: 1rem;
+  max-height: calc(100% - 2rem);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.bar:hover {
+  background-color: #2563eb;
+  transform: translateY(-2px);
+}
+
+.bar-value {
+  position: absolute;
+  top: -1.5rem;
+  color: #1f2937;
+  font-size: 0.65rem;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .bar-label {
   position: absolute;
-  bottom: -1.5rem;
+  bottom: -1.8rem;
   color: #6b7280;
-  font-size: 0.75rem;
+  font-size: 0.65rem;
   font-weight: 600;
+  text-align: center;
+  width: 100%;
+  transform: rotate(-45deg);
+  transform-origin: center top;
 }
 
 .pie-chart-placeholder {
@@ -320,7 +344,55 @@ body, html, #root {
   text-align: center;
 }
 
-/* Responsive styles */
+/* Responsive styles for larger screens */
+@media (min-width: 1440px) {
+  .main-content {
+    padding: 2rem 3rem;
+  }
+
+  .metric-card {
+    flex: 1 1 300px;
+    min-width: 300px;
+  }
+
+  .chart-card {
+    flex: 1 1 500px;
+    min-width: 500px;
+  }
+
+  .header h1 {
+    font-size: 2rem;
+  }
+
+  .metric-value {
+    font-size: 2rem;
+  }
+}
+
+@media (min-width: 1920px) {
+  .main-content {
+    padding: 2.5rem 4rem;
+  }
+
+  .metric-card {
+    flex: 1 1 350px;
+    min-width: 350px;
+  }
+
+  .chart-card {
+    flex: 1 1 600px;
+    min-width: 600px;
+  }
+
+  .header h1 {
+    font-size: 2.5rem;
+  }
+
+  .metric-value {
+    font-size: 2.5rem;
+  }
+}
+
 @media (max-width: 768px) {
   .sidebar {
     position: absolute;
@@ -400,93 +472,6 @@ body, html, #root {
   }
 }
 /* Modal styles */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background-color: white;
-  padding: 2rem;
-  border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  max-width: 500px;
-  width: 90%;
-  max-height: 80vh;
-  overflow-y: auto;
-}
-
-.modal-content .add-customer-form {
-  margin: 0;
-}
-
-.modal-content .add-customer-form h3 {
-  margin-top: 0;
-  color: #333;
-}
-
-.modal-content .form-row {
-  margin-bottom: 1rem;
-}
-
-.modal-content .form-row label {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 600;
-  color: #555;
-}
-
-.modal-content .form-row input,
-.modal-content .form-row select {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  font-size: 1rem;
-}
-
-.modal-content .form-actions {
-  display: flex;
-  gap: 1rem;
-  justify-content: flex-end;
-  margin-top: 1.5rem;
-}
-
-.modal-content .btn {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 1rem;
-  font-weight: 600;
-  transition: background-color 0.3s ease;
-}
-
-.modal-content .btn-primary {
-  background-color: #3b82f6;
-  color: white;
-}
-
-.modal-content .btn-primary:hover {
-  background-color: #2563eb;
-}
-
-.modal-content .btn-secondary {
-  background-color: #6b7280;
-  color: white;
-}
-
-.modal-content .btn-secondary:hover {
-  background-color: #4b5563;
-}
 /* Summary cards styles */
 .summary-cards {
   display: flex;
@@ -836,13 +821,18 @@ body, html, #root {
 
 .stat-card {
   background-color: #f3f4f6;
-  border-radius: 8px;
+  border-radius: 20px;
   padding: 16px 20px;
-  flex: 1 1 150px;
+  flex: 1 1 180px;
   display: flex;
   align-items: center;
   gap: 12px;
   box-shadow: 0 0 6px rgb(0 0 0 / 0.05);
+  justify-content: center;
+  flex-direction: column;
+  text-align: center;
+  min-width: 180px;
+  max-width: 180px;
 }
 
 .stat-value {
@@ -871,6 +861,9 @@ body, html, #root {
 
 .stat-card.overdue-payments {
   background-color: #fee2e2;
+}
+.stat-card.closed-loans {
+  background-color: #ede9fe;
 }
 
 .stat-card.new-this-month {
@@ -1008,5 +1001,429 @@ body, html, #root {
 
 .btn-danger:hover {
   background-color: #b91c1c;
+}
+
+/* Multi-Step Form Styles */
+.multi-step-form-container {
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.form-header h2 {
+  margin: 0;
+  color: #333;
+}
+
+.cancel-btn {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  cursor: pointer;
+  color: #6b7280;
+  padding: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.3s ease;
+}
+
+.cancel-btn:hover {
+  background-color: #f3f4f6;
+  color: #ef4444;
+}
+
+.step-indicator {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+  position: relative;
+}
+
+.step-indicator::before {
+  content: '';
+  position: absolute;
+  top: 20px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #e5e7eb;
+  z-index: 1;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  position: relative;
+  z-index: 2;
+}
+
+.step-number {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.step-label {
+  font-size: 0.875rem;
+  color: #6b7280;
+  text-align: center;
+}
+
+.step.active .step-number {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.step.completed .step-number {
+  background-color: #16a34a;
+  color: white;
+}
+
+.step.completed .step-label {
+  color: #16a34a;
+}
+
+.multi-step-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-step {
+  margin-bottom: 2rem;
+}
+
+.form-step h3 {
+  margin-bottom: 1.5rem;
+  color: #333;
+  font-size: 1.5rem;
+}
+
+.form-row {
+  margin-bottom: 1rem;
+}
+
+.form-row label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #555;
+}
+
+.form-row input,
+.form-row select,
+.form-row textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+}
+
+.form-row input:focus,
+.form-row select:focus,
+.form-row textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-row textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 2rem;
+}
+
+.form-actions .btn {
+  padding: 0.75rem 2rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: background-color 0.3s ease;
+}
+
+.form-actions .btn-secondary {
+  background-color: #6b7280;
+  color: white;
+}
+
+.form-actions .btn-secondary:hover {
+  background-color: #4b5563;
+}
+
+.form-actions .btn-primary {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.form-actions .btn-primary:hover {
+  background-color: #2563eb;
+}
+
+.form-actions .btn-success {
+  background-color: #16a34a;
+  color: white;
+}
+
+.form-actions .btn-success:hover {
+  background-color: #15803d;
+}
+
+.preview-section {
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background: #f9fafb;
+  border-radius: 8px;
+}
+
+.preview-section h4 {
+  margin-bottom: 1rem;
+  color: #333;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 0.5rem;
+}
+
+.preview-section p {
+  margin: 0.5rem 0;
+  color: #555;
+}
+
+.preview-section ul {
+  list-style: none;
+  padding: 0;
+}
+
+.preview-section li {
+  padding: 0.5rem;
+  background: white;
+  margin-bottom: 0.5rem;
+  border-radius: 4px;
+  border: 1px solid #e5e7eb;
+}
+
+/* Loan Status Cards */
+.loan-status-card {
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.loan-status-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
+}
+
+.active-loans {
+  background: linear-gradient(135deg, #fef3c7, #fbbf24);
+  color: #92400e;
+}
+
+.overdue-payments {
+  background: linear-gradient(135deg, #fecaca, #ef4444);
+  color: #7f1d1d;
+}
+
+.closed-loans {
+  background: linear-gradient(135deg, #d1fae5, #10b981);
+  color: #064e3b;
+}
+
+.loan-status-card .metric-icon.yellow {
+  background-color: #f59e0b;
+  color: white;
+}
+
+.loan-status-card .metric-icon.red {
+  background-color: #ef4444;
+  color: white;
+}
+
+.loan-status-card .metric-icon.green {
+  background-color: #10b981;
+  color: white;
+}
+
+/* Recent Payments Section */
+.recent-payments-section {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem 2rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  margin-top: 2rem;
+}
+
+.recent-payments-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.recent-payments-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.view-all-link {
+  color: #2563eb;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.view-all-link:hover {
+  text-decoration: underline;
+}
+
+.recent-payments-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.recent-payments-table th,
+.recent-payments-table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 0.9rem;
+}
+
+.recent-payments-table th {
+  font-weight: 700;
+  color: #374151;
+}
+
+.status-paid {
+  background-color: #d1fae5;
+  color: #065f46;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-weight: 600;
+  font-size: 0.8rem;
+  display: inline-block;
+}
+
+.status-due {
+  background-color: #fee2e2;
+  color: #991b1b;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-weight: 600;
+  font-size: 0.8rem;
+  display: inline-block;
+}
+
+/* Due Payments Alert Section */
+.due-payments-alert {
+  background-color: #fef3f2;
+  border: 1px solid #f87171;
+  border-radius: 12px;
+  padding: 1rem 1.5rem;
+  margin-top: 1.5rem;
+  box-shadow: 0 1px 4px rgba(248, 113, 113, 0.3);
+}
+
+.alert-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  color: #b91c1c;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.alert-icon {
+  font-size: 1.5rem;
+}
+
+.due-payment-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.due-payment-info strong {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #111827;
+}
+
+.due-date {
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.due-amount {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #b91c1c;
+}
+
+/* Responsive for multi-step form */
+@media (max-width: 768px) {
+  .multi-step-form-container {
+    margin: 1rem;
+    padding: 1rem;
+  }
+
+  .step-indicator {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .step-indicator::before {
+    display: none;
+  }
+
+  .form-actions {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .form-actions .btn {
+    width: 100%;
+  }
 }
 

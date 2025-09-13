@@ -8,22 +8,24 @@ const Customer = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [loanStatus, setLoanStatus] = useState('All Status');
   const [dateRange, setDateRange] = useState({ from: '', to: '' });
+
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchCustomers = async () => {
-      try {
-        const response = await fetch('http://localhost:5000/api/customers');
-        if (!response.ok) {
-          throw new Error('Failed to fetch customers');
-        }
-        const data = await response.json();
-        setCustomers(data);
-        setFilteredCustomers(data);
-      } catch (err) {
-        console.error(err);
+  const fetchCustomers = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/customers');
+      if (!response.ok) {
+        throw new Error('Failed to fetch customers');
       }
-    };
+      const data = await response.json();
+      setCustomers(data);
+      setFilteredCustomers(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
     fetchCustomers();
   }, []);
 
@@ -66,6 +68,7 @@ const Customer = () => {
   const totalCustomers = customers.length;
   const activeLoans = customers.filter(c => c.loanStatus === 'Active').length;
   const overduePayments = customers.filter(c => c.loanStatus === 'Overdue').length;
+  const closedLoans = customers.filter(c => c.loanStatus === 'Closed').length;
   const newThisMonth = customers.filter(c => {
     if (!c.date) return false;
     const date = new Date(c.date);
@@ -91,7 +94,7 @@ const Customer = () => {
           <h2>Customer Database</h2>
           <p>Manage all customer information and loan details</p>
           <div className="customer-actions">
-            <button className="btn btn-primary">+ Add New Customer</button>
+            <button className="btn btn-primary" onClick={() => navigate('/add-sale')}>+ Add New Sale</button>
             <button className="btn btn-success">📊 Export Data</button>
           </div>
         </div>
@@ -145,6 +148,11 @@ const Customer = () => {
             <div className="stat-label">Overdue Payments</div>
             <div className="stat-icon">❗</div>
           </div>
+          <div className="stat-card closed-loans">
+            <div className="stat-value">{closedLoans}</div>
+            <div className="stat-label">Closed Loans</div>
+            <div className="stat-icon">✅</div>
+          </div>
           <div className="stat-card new-this-month">
             <div className="stat-value">{newThisMonth}</div>
             <div className="stat-label">New This Month</div>
@@ -197,6 +205,7 @@ const Customer = () => {
           </tbody>
         </table>
       </section>
+
     </div>
   );
 };
