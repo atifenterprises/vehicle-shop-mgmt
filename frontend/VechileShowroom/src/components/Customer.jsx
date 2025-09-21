@@ -32,6 +32,9 @@ const Customer = () => {
   useEffect(() => {
     let filtered = customers;
 
+    // Filter by sale type - only show finance sales
+    filtered = filtered.filter(c => c.saleType === 'finance');
+
     // Filter by search term
     if (searchTerm.trim() !== '') {
       const lowerSearch = searchTerm.toLowerCase();

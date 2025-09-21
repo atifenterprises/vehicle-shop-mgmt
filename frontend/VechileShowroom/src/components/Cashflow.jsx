@@ -10,9 +10,9 @@ const Cashflow = () => {
     const navigate = useNavigate();
     const fetchCashflows = async () => {
         try {
-            const response = await fetch('http://localhost:5000/api/cashflows');
+            const response = await fetch('http://localhost:5000/api/customers');
             if (!response.ok) {
-                throw new Error('Failed to fetch cashflows');
+                throw new Error('Failed to fetch customers');
             }
             const data = await response.json();
             setCashflows(data);
@@ -27,25 +27,34 @@ const Cashflow = () => {
         fetchCashflows();
     }, []);
 
-    // filter cashflows based on search term and date range
+    // filter cashflows based on search term, date range, and sale type
     useEffect(() => {
         let filtered = cashflows;
+
+        // Filter by sale type - only show cash sales
+        filtered = filtered.filter(c => c.saleType === 'cash');
+
         if (searchTerm.trim() !== '') {
             const lowerSearch = searchTerm.toLowerCase();
             filtered = filtered.filter(c =>
-                c.description.toLowerCase().includes(lowerSearch) ||
-                c.type.toLowerCase().includes(lowerSearch) ||
-                (c.date && c.date.toString().includes(lowerSearch))
+                c.name?.toLowerCase().includes(lowerSearch) ||
+                c.mobile?.toLowerCase().includes(lowerSearch) ||
+                c.vehicleNumber?.toLowerCase().includes(lowerSearch) ||
+                c.customerId?.toLowerCase().includes(lowerSearch)
             );
         }
         if (dateRange.from && dateRange.to) {
             filtered = filtered.filter(c => {
-                if (!c.date) return false;
-                return c.date >= dateRange.from && c.date <= dateRange.to;
+                if (!c.saleDate) return false;
+                return c.saleDate >= dateRange.from && c.saleDate <= dateRange.to;
             });
         }
         setFilteredCashflows(filtered);
     }, [searchTerm, dateRange, cashflows]);
+
+    const handleRowClick = (customer) => {
+        navigate(`/customers/${customer.id}`, { state: { customer } });
+    };
     return (
      <div className="customer-container">
         <header className="customer-header">
@@ -150,6 +159,30 @@ const Cashflow = () => {
 
                     </tr>
                 </thead>
+                <tbody>
+                    {filteredCashflows.length === 0 ? (
+                        <tr>
+                            <td colSpan="12" className="no-data">No cashflow customers found.</td>
+                        </tr>
+                    ) : (
+                        filteredCashflows.map((customer, index) => (
+                            <tr key={customer.id || index} className="clickable-row" onClick={() => handleRowClick(customer)}>
+                                <td>{index + 1}</td>
+                                <td>{customer.customerId || '-'}</td>
+                                <td>{customer.name || '-'}</td>
+                                <td>{customer.address || '-'}</td>
+                                <td>{customer.mobile || '-'}</td>
+                                <td>{customer.saleType || '-'}</td>
+                                <td>{customer.saleDate || '-'}</td>
+                                <td>{customer.totalAmount || '-'}</td>
+                                <td>{customer.downPayment || '0'}</td>
+                                <td>{customer.loanAmount ? customer.loanAmount - customer.downPayment : '-'}</td>
+                                <td>{customer.firstEmiDate || '-'}</td>
+                                <td>{customer.loanStatus || 'Completed'}</td>
+                            </tr>
+                        ))
+                    )}
+                </tbody>
             </table>
 
             
