@@ -13,7 +13,6 @@ const AddVehicleForm = () => {
     color: '',
     regnNumber: '',
     toolKit: '',
-    batteryNumber: '',
     exShowroomPrice: '',
     saleDate: '',
     vehicleStatus: 'In Stock',
@@ -216,18 +215,6 @@ const AddVehicleForm = () => {
               <option value="Not Available">Not Available</option>
             </select>
           </div>
-
-          <div className="form-row">
-            <label>Battery Number:</label>
-            <input
-              type="text"
-              name="batteryNumber"
-              value={formData.batteryNumber}
-              onChange={handleChange}
-              placeholder="Enter battery number"
-            />
-          </div>
-
           <div className="form-row">
             <label>Ex-Showroom Price:</label>
             <input

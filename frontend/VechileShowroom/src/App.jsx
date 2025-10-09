@@ -10,6 +10,8 @@ import VehicleDetails from './components/VehicleDetails.jsx';
 import CalculateEMI from './components/CalculateEMI.jsx';
 import Cashflow from './components/Cashflow.jsx';
 import CustomerEnquiry from './components/CustomerEnquiry.jsx';
+import SalesFinance from './components/SalesFinance.jsx';
+import LoanRepayments from './components/LoanRepayments.jsx';
 import Sidebar from './Sidebar.jsx';
 import './index.css';
 
@@ -31,6 +33,8 @@ function App() {
         <Route path="/vehicles/:id" element={<VehicleDetails />} />
         <Route path="/cashflows" element={<Cashflow />} />
         <Route path="/customerEnquiry" element={<CustomerEnquiry />} />
+        <Route path="/sales-finance" element={<SalesFinance />} />
+        <Route path="/loan-repayments" element={<LoanRepayments />} />
       </Routes>
       {isEMIDialogOpen && (
         <div className="modal-overlay" onClick={closeEMIDialog}>

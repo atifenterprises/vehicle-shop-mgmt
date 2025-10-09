@@ -183,10 +183,6 @@ const VehicleDetails = () => {
           </select>
         </label>
         <label>
-          Battery Number:
-          <input type="text" name="batteryNumber" value={vehicle.batteryNumber} onChange={handleChange} />
-        </label>
-        <label>
           Ex-Showroom Price:
           <input type="number" name="exShowroomPrice" value={vehicle.exShowroomPrice} onChange={handleChange} />
         </label>

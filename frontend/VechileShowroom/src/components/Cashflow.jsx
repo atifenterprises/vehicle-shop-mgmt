@@ -7,6 +7,7 @@ const Cashflow = () => {
     const [filteredCashflows, setFilteredCashflows] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [dateRange, setDateRange] = useState({ from: '', to: '' });
+    const [selectedStatus, setSelectedStatus] = useState('All');
     const navigate = useNavigate();
     const fetchCashflows = async () => {
         try {
@@ -27,7 +28,7 @@ const Cashflow = () => {
         fetchCashflows();
     }, []);
 
-    // filter cashflows based on search term, date range, and sale type
+    // filter cashflows based on search term, date range, sale type, and status
     useEffect(() => {
         let filtered = cashflows;
 
@@ -49,70 +50,72 @@ const Cashflow = () => {
                 return c.saleDate >= dateRange.from && c.saleDate <= dateRange.to;
             });
         }
+        if (selectedStatus !== 'All') {
+            filtered = filtered.filter(c => (c.loanStatus || 'Completed') === selectedStatus);
+        }
         setFilteredCashflows(filtered);
-    }, [searchTerm, dateRange, cashflows]);
+    }, [searchTerm, dateRange, selectedStatus, cashflows]);
+
 
     const handleRowClick = (customer) => {
-        navigate(`/customers/${customer.id}`, { state: { customer } });
+        navigate(`/customers/${customer.id}`, { state: { customer, from: 'cashflow' } });
     };
     return (
-     <div className="customer-container">
-        <header className="customer-header">
-        <>
-          <h1><span className="customer-icon">🏧</span> Cashflow Management</h1>
-          <button className="btn btn-primary" onClick={() => navigate('/')}>← Back to Dashboard</button>
-        </>
-      </header>
+        <div className="customer-container">
+            <header className="customer-header">
+                <>
+                    <h1><span className="customer-icon">🏧</span>Sale on Cash</h1>
+                    <button className="btn btn-primary" onClick={() => navigate('/')}>← Back to Dashboard</button>
+                </>
+            </header>
 
-      <section className="metrics">
-          <div className="metric-card">
-            <div className="metric-info">
-              <div className="metric-label">Total Cashflow</div>
-              <div className="metric-value">₹ 10,50,000</div>
-            </div>
-            <div className="metric-icon blue">💵</div>
-          </div>
-          <div className="metric-card">
-            <div className="metric-info">
-              <div className="metric-label">Total Sale on Cash</div>
-              <div className="metric-value">23</div>
-            </div>
-            <div className="metric-icon purple">💲</div>
-          </div>
+            <section className="metrics">
+                <div className="metric-card">
+                    <div className="metric-info">
+                        <div className="metric-label">Total Sale on Cash</div>
+                        <div className="metric-value">₹ 10,50,000</div>
+                    </div>
+                    <div className="metric-icon blue">💵</div>
+                </div>
+                <div className="metric-card">
+                    <div className="metric-info">
+                        <div className="metric-label">Received Amount</div>
+                        <div className="metric-value">₹ 8,50,000</div>
+                    </div>
+                    <div className="metric-icon purple">💲</div>
+                </div>
+                <div className="metric-card">
+                    <div className="metric-info">
+                        <div className="metric-label">Remaining Amount</div>
+                        <div className="metric-value">₹ 1,30,000</div>
+                    </div>
+                    <div className="metric-icon green">⌛</div>
+                </div>
 
-          <div className="metric-card">
-            <div className="metric-info">
-              <div className="metric-label">Remaining Full Payment</div>
-                <div className="metric-value">15</div>    
-            </div>
-            <div className="metric-icon blue">⌛</div>
-          </div>
-
-          <div className="metric-card">
-            <div className="metric-info">
-              <div className="metric-label">Total Remaining Balance</div>
-                <div className="metric-value">₹ 1,30,000</div>
-            </div>
-            <div className="metric-icon green">®️</div>
-          </div>
-
-          <div className="metric-card">
-            <div className="metric-info">
-              <div className="metric-label">Failed to Pay on time</div>
-                <div className="metric-value">11</div>
-            </div>
-            <div className="metric-icon red">⚠️</div>
-          </div>
-        </section>
-        <section className="customer-database">
-            <div className="customer-database-header">
-                <h2>Manage Cashflow</h2>
-                <p>Manage all cashflow information</p>
-                <div className="customer-actions">
-                    <button className="btn btn-success">📊 Generte Report</button>
-                </div>                                
-            </div>
-            <div className="customer-filters">
+                <div className="metric-card">
+                    <div className="metric-info">
+                        <div className="metric-label">Closed</div>
+                        <div className="metric-value">12</div>
+                    </div>
+                    <div className="metric-icon blue">✅</div>
+                </div>
+                <div className="metric-card">
+                    <div className="metric-info">
+                        <div className="metric-label">Failed to Pay on time</div>
+                        <div className="metric-value">11</div>
+                    </div>
+                    <div className="metric-icon red">⚠️</div>
+                </div>
+            </section>
+            <section className="customer-database">
+                <div className="customer-database-header">
+                    <h2>Manage Sales on cash</h2>
+                    <p>Manage all Sales on Cash information</p>
+                    <div className="customer-actions">
+                        <button className="btn btn-success">📊 Generte Report</button>
+                    </div>
+                </div>
+                <div className="customer-filters">
                 <input
                     type="text"
                     placeholder="Search by Customer, Mobile Number, and Vehicle..."
@@ -120,6 +123,17 @@ const Cashflow = () => {
                     onChange={e => setSearchTerm(e.target.value)}
                     className="input-search"
                 />
+                <select
+                    value={selectedStatus}
+                    onChange={e => setSelectedStatus(e.target.value)}
+                    className="input-select"
+                    style={{ marginLeft: '10px', padding: '5px' }}
+                >
+                    <option value="All">All Statuses</option>
+                    <option value="Completed">Completed</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Failed">Failed</option>
+                </select>
                 <div className="date-filters">
                     <label>
                         From:
@@ -184,12 +198,8 @@ const Cashflow = () => {
                     )}
                 </tbody>
             </table>
-
-            
-        </section>
-  
-
-     </div>
+            </section>
+        </div>
     );
 };
 export default Cashflow;

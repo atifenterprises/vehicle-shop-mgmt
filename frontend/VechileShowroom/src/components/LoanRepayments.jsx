@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import '../index.css';
 
-const Customer = () => {
+const LoanRepayments = () => {
   const [customers, setCustomers] = useState([]);
   const [filteredCustomers, setFilteredCustomers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -31,6 +30,9 @@ const Customer = () => {
 
   useEffect(() => {
     let filtered = customers;
+
+    // Filter by sale type - only show finance sales
+    filtered = filtered.filter(c => c.saleType === 'finance');
 
     // Filter by search term
     if (searchTerm.trim() !== '') {
@@ -67,6 +69,7 @@ const Customer = () => {
   // Stats calculations
   const totalCustomers = customers.length;
   const activeLoans = customers.filter(c => c.loanStatus === 'Active').length;
+  const overduePayments = customers.filter(c => c.loanStatus === 'Overdue').length;
   const closedLoans = customers.filter(c => c.loanStatus === 'Closed').length;
   const newThisMonth = customers.filter(c => {
     if (!c.date) return false;
@@ -76,40 +79,67 @@ const Customer = () => {
   }).length;
 
   const handleRowClick = (customer) => {
-    navigate(`/customers/${customer.id}`, { state: { customer, from: 'customers' } });
+    navigate(`/customers/${customer.id}`, { state: { customer, from: 'sales-finance' } });
   };
 
   return (
     <div className="customer-container">
       <header className="customer-header">
         <>
-          <h1><span className="customer-icon">👥</span> Customer Management</h1>
+          <h1><span className="customer-icon">💵</span> Loan Repayments</h1>
           <button className="btn btn-primary" onClick={() => navigate('/')}>← Back to Dashboard</button>
         </>
       </header>
+
       <section className="metrics">
         <div className="metric-card">
           <div className="metric-info">
-            <div className="metric-label">Total Customers</div>
+            <div className="metric-label">Total Loans Amount</div>
+            <div className="metric-value">₹37,000,236</div>
+          </div>
+          <div className="metric-icon blue">💰</div>
+        </div>
+        <div className="metric-card">
+          <div className="metric-info">
+            <div className="metric-label">Total Received Amount</div>
+            <div className="metric-value">₹17,000,236</div>
+          </div>
+          <div className="metric-icon blue">🪙</div>
+        </div>
+        <div className="metric-card">
+          <div className="metric-info">
+            <div className="metric-label">Total Remaining Amount</div>
+            <div className="metric-value">₹12,000,236</div>
+          </div>
+          <div className="metric-icon green">⌛</div>
+        </div>
+        <div className="metric-card">
+          <div className="metric-info">
+            <div className="metric-label">Total Loans</div>
             <div className="metric-value">{totalCustomers}</div>
           </div>
-          <div className="metric-icon blue">👥</div>
+          <div className="metric-icon red">👁️‍🗨️</div>
         </div>
-
         <div className="metric-card">
           <div className="metric-info">
-            <div className="metric-label">Active Customers</div>
+            <div className="metric-label">Active Loans</div>
             <div className="metric-value">{activeLoans}</div>
           </div>
-          <div className="metric-icon green">🟢</div>
+          <div className="metric-icon green">✅</div>
         </div>
-
         <div className="metric-card">
           <div className="metric-info">
-            <div className="metric-label">Monthly Closed</div>
+            <div className="metric-label">Closed Loans</div>
             <div className="metric-value">{closedLoans}</div>
           </div>
-          <div className="metric-icon purple">✅</div>
+          <div className="metric-icon blue">🆑</div>
+        </div>
+        <div className="metric-card">
+          <div className="metric-info">
+            <div className="metric-label">Total Overdues</div>
+            <div className="metric-value">{overduePayments}</div>
+          </div>
+          <div className="metric-icon blue">⚠️</div>
         </div>
         <div className="metric-card">
           <div className="metric-info">
@@ -119,20 +149,20 @@ const Customer = () => {
           <div className="metric-icon green">🆕</div>
         </div>
       </section>
+
       <section className="customer-database">
         <div className="customer-database-header">
-          <h2>Customer Database</h2>
-          <p>Manage all customer information and loan details</p>
+          <h2>Manage Sales on Finance</h2>
+          <p>Manage all sales on finance</p>
           <div className="customer-actions">
-            <button className="btn btn-primary" onClick={() => navigate('/add-sale')}>+ Add New Sale</button>
-            <button className="btn btn-success">📊 Export Data</button>
+            <button className="btn btn-success">📊 Generte Report</button>
           </div>
         </div>
 
         <div className="customer-filters">
           <input
             type="text"
-            placeholder="Search by name, loan number, mobile..."
+            placeholder="Search by name, Model No, Chesis No..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             className="input-search"
@@ -142,9 +172,10 @@ const Customer = () => {
             onChange={e => setLoanStatus(e.target.value)}
             className="select-status"
           >
-            <option>All Status</option>
+            <option>All</option>
             <option>Active</option>
             <option>Closed</option>
+            <option>Overdue</option>
           </select>
           <input
             type="date"
@@ -160,47 +191,47 @@ const Customer = () => {
           />
           <button className="btn btn-clear" onClick={clearFilters}>Clear</button>
         </div>
-
         <table className="customer-table">
           <thead>
             <tr>
               <th>Sl. Number</th>
-              <th>Customer ID</th>
+              <th>Loan Number</th>
               <th>Customer Name</th>
-              <th>Parents Name</th>
-              <th>Customer Details</th>
-              <th>Contact Number</th>
+              <th>Phone Number</th>
+              <th>Loan Amount</th>
+              <th>EMI Number</th>
+              <th>Montly EMI(₹)</th>
+              <th>Bucket(No. of Overdues)</th>
+              <th>Overdues Charges</th>
+              <th>Payable Amount</th>
+              <th>Total Paid Amount</th>
+              <th>Total Remaining Amount</th>
               <th>Status</th>
+              <th>Next EMI Date</th>
             </tr>
           </thead>
           <tbody>
             {filteredCustomers.length === 0 ? (
               <tr>
-                <td colSpan="9" className="no-data">No customers found.</td>
+                <td colSpan="14" className="no-data">No customers found.</td>
               </tr>
             ) : (
               filteredCustomers.map((customer, index) => (
-                <tr key={customer.id || index} className="clickable-row" onClick={() => handleRowClick(customer)}>
+                <tr key={customer.id ?? index} onClick={() => handleRowClick(customer)} style={{ cursor: 'pointer' }}>
                   <td>{index + 1}</td>
-                  <td>{customer.id || '-'}</td>
-                  <td>
-                    <div>{customer.name}</div>
-                  </td>
-                  <td>
-                    <div>{customer.fatherName || '-'}</div>
-                  </td>
-                  <td>
-                    <div>{customer.address || '-'}</div>
-                  </td>
-                  <td>
-                    <div>{customer.mobile || '-'}</div>
-                  </td>
-                  <td>
-                    <div className={`status-badge ${customer.loanStatus === 'Active' ? 'status-active' : customer.loanStatus === 'Closed' ? 'status-closed' : ''}`}>
-                      {customer.loanStatus || 'N/A'}
-                    </div>
-                  </td>
-
+                  <td>{customer.loanNumber ?? customer.loan_no ?? '-'}</td>
+                  <td>{customer.name ?? '-'}</td>
+                  <td>{customer.mobile ?? customer.phone ?? '-'}</td>
+                  <td>{customer.loanAmount ?? customer.loan_amount}</td>
+                  <td>{customer.emiNumber ?? customer.emi_no ?? '-'}</td>
+                  <td>{customer.monthlyEMI ?? customer.monthly_emi ?? customer.emi}</td>
+                  <td>{customer.bucket ?? customer.overdueCount ?? 0}</td>
+                  <td>{customer.overdueCharges ?? customer.overdue_charges}</td>
+                  <td>{customer.payableAmount ?? customer.payable_amount}</td>
+                  <td>{customer.totalPaidAmount ?? customer.total_paid_amount}</td>
+                  <td>{customer.totalRemainingAmount ?? customer.total_remaining_amount}</td>
+                  <td>{customer.loanStatus ?? customer.status ?? '-'}</td>
+                  <td>{customer.nextEmiDate ?? customer.next_emi_date ?? '-'}</td>
                 </tr>
               ))
             )}
@@ -211,4 +242,4 @@ const Customer = () => {
   );
 };
 
-export default Customer;
+export default LoanRepayments;

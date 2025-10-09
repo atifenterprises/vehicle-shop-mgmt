@@ -78,7 +78,7 @@ const Vehicle = () => {
     const saleDate = new Date(vehicle.saleDate);
     const now = new Date();
     return saleDate.getMonth() === now.getMonth() &&
-           saleDate.getFullYear() === now.getFullYear();
+      saleDate.getFullYear() === now.getFullYear();
   }).length;
 
   const lowStockCount = vehicles.filter(v => v.vehicleStatus === 'In Stock').length;
@@ -98,38 +98,38 @@ const Vehicle = () => {
       </header>
 
       <section className="metrics">
-          <div className="metric-card">
-            <div className="metric-info">
-              <div className="metric-label">Available Vehicle</div>
-              <div className="metric-value">{totalAvailableStocks}</div>
-            </div>
-            <div className="metric-icon blue">🚙</div>
+        <div className="metric-card">
+          <div className="metric-info">
+            <div className="metric-label">Available Vehicle</div>
+            <div className="metric-value">{totalAvailableStocks}</div>
           </div>
+          <div className="metric-icon blue">🚙</div>
+        </div>
 
-          <div className="metric-card">
-            <div className="metric-info">
-              <div className="metric-label">Monthly Sale</div>
-              <div className="metric-value">{soldThisMonth}</div>
-            </div>
-            <div className="metric-icon green">💹</div>
+        <div className="metric-card">
+          <div className="metric-info">
+            <div className="metric-label">Monthly Sale</div>
+            <div className="metric-value">{soldThisMonth}</div>
           </div>
+          <div className="metric-icon green">💹</div>
+        </div>
 
-          <div className="metric-card">
-            <div className="metric-info">
-              <div className="metric-label">Low Stocks</div>
-              <div className="metric-value">{lowStockCount}</div>
-            </div>
-            <div className="metric-icon purple">⚠️</div>
+        <div className="metric-card">
+          <div className="metric-info">
+            <div className="metric-label">Low Stocks</div>
+            <div className="metric-value">{lowStockCount}</div>
           </div>
+          <div className="metric-icon purple">⚠️</div>
+        </div>
 
-          <div className="metric-card">
-            <div className="metric-info">
-              <div className="metric-label">Out of Stocks</div>
-              <div className="metric-value">{outOfStockCount}</div>
-            </div>
-            <div className="metric-icon red">‼️</div>
+        <div className="metric-card">
+          <div className="metric-info">
+            <div className="metric-label">Out of Stocks</div>
+            <div className="metric-value">{outOfStockCount}</div>
           </div>
-        </section>
+          <div className="metric-icon red">‼️</div>
+        </div>
+      </section>
 
       <section className="customer-database">
         <div className="customer-database-header">

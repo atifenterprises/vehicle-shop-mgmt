@@ -1,5 +1,7 @@
 /* Reset and base styles */
-body, html, #root {
+body,
+html,
+#root {
   margin: 0;
   padding: 0;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -63,7 +65,8 @@ body, html, #root {
   gap: 1rem;
 }
 
-.nav-links a, .nav-links .button-link {
+.nav-links a,
+.nav-links .button-link {
   color: black;
   text-decoration: none;
   font-size: 0.9rem;
@@ -108,8 +111,9 @@ body, html, #root {
 
 .header h1 {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: clamp(1rem, 1.5vw, 1.5rem);
   font-weight: 700;
+
 }
 
 .header p {
@@ -399,6 +403,7 @@ body, html, #root {
     width: 100%;
     flex-direction: column;
     padding: 1rem;
+    background: white;
   }
 
   .dashboard-container.sidebar-collapsed .sidebar {
@@ -434,11 +439,17 @@ body, html, #root {
   }
 
   .metric-card {
-    min-width: 200px;
+    flex: 0 0 auto;
+    min-width: 0;
+    width: 100%;
+    padding: 0.15rem 0.3rem;
   }
 
   .chart-card {
-    min-width: 300px;
+    flex: 0 0 auto;
+    min-width: 0;
+    width: 100%;
+    padding: 0.15rem 0.3rem;
   }
 }
 
@@ -505,12 +516,55 @@ body, html, #root {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .customer-icon {
-  font-size: 24px;
   margin-right: 8px;
+  font-size: 36px;
 }
+
+h1 {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.2;
+  display: flex;
+  align-items: center;
+}
+
+/* Mobile-specific adjustments (≤ 768px) */
+@media (max-width: 768px) {
+  .customer-header {
+    padding: 0.5rem;
+  }
+
+  .customer-icon {
+    font-size: clamp(0.75rem, 1.5vw, 1rem);
+  }
+
+  h1 {
+    font-size: clamp(0.75rem, 1.5vw, 1rem);
+  }
+
+  .btn.btn-primary {
+    /* Increased specificity */
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    border-radius: 4px;
+  }
+
+  .btn-primary {
+    background-color: #2563eb;
+    color: white;
+  }
+
+  .btn-primary:hover {
+    background-color: #1e40af;
+  }
+}
+
 
 .back-link {
   color: #2563eb;
@@ -627,6 +681,7 @@ body, html, #root {
   background-color: #4b5563;
 }
 
+/* Customer Table Styles */
 .customer-table {
   width: 100%;
   border-collapse: collapse;
@@ -642,6 +697,9 @@ body, html, #root {
   text-align: left;
   border-bottom: 1px solid #e5e7eb;
   font-size: 14px;
+  max-width: 200px;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .customer-table th {
@@ -652,6 +710,40 @@ body, html, #root {
 
 .customer-table tbody tr:hover {
   background-color: #f3f4f6;
+}
+
+/* Responsive adjustments for mobile and smaller screens */
+@media (max-width: 768px) {
+  .customer-table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .customer-table th,
+  .customer-table td {
+    padding: 8px 12px;
+    font-size: 12px;
+    min-width: 100px;
+    max-width: 160px;
+    word-break: break-word;
+    word-wrap: break-word;
+    white-space: normal;
+  }
+
+  .customer-table thead {
+    display: table;
+    width: 100%;
+  }
+
+  .customer-table tbody {
+    display: table;
+    width: 100%;
+  }
+
+  .customer-table tr {
+    display: table-row;
+  }
 }
 
 .btn-delete {
@@ -949,7 +1041,7 @@ body, html, #root {
   background: white;
   border-radius: 12px;
   padding: 1.5rem 2rem;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
   margin-top: 2rem;
 }
 
@@ -1048,7 +1140,7 @@ body, html, #root {
   border-radius: 8px;
   padding: 0.75rem 1rem;
   margin-bottom: 0.75rem;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .due-payment-info strong {

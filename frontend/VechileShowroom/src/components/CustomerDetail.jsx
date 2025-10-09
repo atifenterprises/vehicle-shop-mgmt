@@ -1,8 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import '../index.css';
+import { generateLetterHTML } from './LetterPrint';
 
 const CustomerDetail = () => {
+  // Company details for the letter
+  const company = {
+    name: 'Vehicle Showroom Company',
+    address: '123 Main Street, City, State, ZIP Code',
+    phone: '+1-234-567-8900',
+    email: 'info@vehicleshowroom.com'
+  };
   const location = useLocation();
   const navigate = useNavigate();
   const { id } = useParams();
@@ -36,6 +44,7 @@ const CustomerDetail = () => {
     emiSchedule: [],
     loanStatus: '',
     nextEmiDate: '',
+    promisedPaymentDate: '',
   });
 
   const [loading, setLoading] = useState(false);
@@ -82,21 +91,35 @@ const CustomerDetail = () => {
     if (type === 'finance') {
       return {
         showFinanceFields: true,
-        showCashFields: false,
-        backButtonText: 'Back to Customers',
-        backButtonRoute: '/customers'
+        showCashFields: false
       };
     } else if (type === 'cash') {
       return {
         showFinanceFields: false,
-        showCashFields: true,
-        backButtonText: 'Back to Cashflow',
-        backButtonRoute: '/cashflows'
+        showCashFields: true
       };
     } else {
       return {
         showFinanceFields: true,
-        showCashFields: true,
+        showCashFields: true
+      };
+    }
+  };
+
+  // Helper function to determine back button based on from
+  const getBackConfig = (from) => {
+    if (from === 'sales-finance') {
+      return {
+        backButtonText: 'Back to Sales & Finance',
+        backButtonRoute: '/sales-finance'
+      };
+    } else if (from === 'cashflow') {
+      return {
+        backButtonText: 'Back to Sales & Cash',
+        backButtonRoute: '/cashflows'
+      };
+    } else {
+      return {
         backButtonText: 'Back to Customers',
         backButtonRoute: '/customers'
       };
@@ -104,6 +127,7 @@ const CustomerDetail = () => {
   };
 
   const fieldConfig = getFieldsToShow(customer.saleType);
+  const backConfig = getBackConfig(location.state?.from);
 
   // Show loading state
   if (loading) {
@@ -111,8 +135,8 @@ const CustomerDetail = () => {
       <div className="customer-container">
         <header className="customer-header">
           <h1><span className="customer-icon">🔒</span> Customer Detail</h1>
-          <button className="btn btn-primary" onClick={() => navigate(fieldConfig.backButtonRoute)}>
-            ← {fieldConfig.backButtonText}
+          <button className="btn btn-primary" onClick={() => navigate(backConfig.backButtonRoute)}>
+            ← {backConfig.backButtonText}
           </button>
         </header>
         <div className="loading-container">
@@ -128,14 +152,14 @@ const CustomerDetail = () => {
       <div className="customer-container">
         <header className="customer-header">
           <h1><span className="customer-icon">🔒</span> Customer Detail</h1>
-          <button className="btn btn-primary" onClick={() => navigate(fieldConfig.backButtonRoute)}>
-            ← {fieldConfig.backButtonText}
+          <button className="btn btn-primary" onClick={() => navigate(backConfig.backButtonRoute)}>
+            ← {backConfig.backButtonText}
           </button>
         </header>
         <div className="error-container">
           <p>Error: {error}</p>
-          <button className="btn btn-primary" onClick={() => navigate(fieldConfig.backButtonRoute)}>
-            {fieldConfig.backButtonText}
+          <button className="btn btn-primary" onClick={() => navigate(backConfig.backButtonRoute)}>
+            {backConfig.backButtonText}
           </button>
         </div>
       </div>
@@ -148,14 +172,14 @@ const CustomerDetail = () => {
       <div className="customer-container">
         <header className="customer-header">
           <h1><span className="customer-icon">🔒</span> Customer Detail</h1>
-          <button className="btn btn-primary" onClick={() => navigate(fieldConfig.backButtonRoute)}>
-            ← {fieldConfig.backButtonText}
+          <button className="btn btn-primary" onClick={() => navigate(backConfig.backButtonRoute)}>
+            ← {backConfig.backButtonText}
           </button>
         </header>
         <div className="no-data-container">
           <p>No customer data available.</p>
-          <button className="btn btn-primary" onClick={() => navigate(fieldConfig.backButtonRoute)}>
-            {fieldConfig.backButtonText}
+          <button className="btn btn-primary" onClick={() => navigate(backConfig.backButtonRoute)}>
+            {backConfig.backButtonText}
           </button>
         </div>
       </div>
@@ -166,8 +190,8 @@ const CustomerDetail = () => {
     <div className="customer-container">
       <header className="customer-header">
         <h1><span className="customer-icon">🔒</span> Customer Detail</h1>
-        <button className="btn btn-primary" onClick={() => navigate(fieldConfig.backButtonRoute)}>
-          ← {fieldConfig.backButtonText}
+        <button className="btn btn-primary" onClick={() => navigate(backConfig.backButtonRoute)}>
+          ← {backConfig.backButtonText}
         </button>
       </header>
 
@@ -308,6 +332,10 @@ const CustomerDetail = () => {
               <input type="date" name="saleDate" value={customer.saleDate} onChange={handleChange} />
             </label>
             <label>
+              Promised Payment Date:
+              <input type="date" name="promisedPaymentDate" value={customer.promisedPaymentDate} onChange={handleChange} />
+            </label>
+            <label>
               Payment Status:
               <select name="loanStatus" value={customer.loanStatus} onChange={handleChange}>
                 <option value="">Select Status</option>
@@ -335,17 +363,17 @@ const CustomerDetail = () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(customer)
     })
-    .then(response => {
-      if (response.ok) {
-        alert('Customer updated successfully');
-      } else {
-        alert('Failed to update customer');
-      }
-    })
-    .catch(error => {
-      console.error('Error updating customer:', error);
-      alert('Error updating customer');
-    });
+      .then(response => {
+        if (response.ok) {
+          alert('Customer updated successfully');
+        } else {
+          alert('Failed to update customer');
+        }
+      })
+      .catch(error => {
+        console.error('Error updating customer:', error);
+        alert('Error updating customer');
+      });
   }
 
   function handleDelete() {
@@ -353,18 +381,18 @@ const CustomerDetail = () => {
     fetch(`http://localhost:5000/api/customers/${customer.customerId}`, {
       method: 'DELETE'
     })
-    .then(response => {
-      if (response.ok) {
-        alert('Customer deleted successfully');
-        navigate('/customers');
-      } else {
-        alert('Failed to delete customer');
-      }
-    })
-    .catch(error => {
-      console.error('Error deleting customer:', error);
-      alert('Error deleting customer');
-    });
+      .then(response => {
+        if (response.ok) {
+          alert('Customer deleted successfully');
+          navigate('/customers');
+        } else {
+          alert('Failed to delete customer');
+        }
+      })
+      .catch(error => {
+        console.error('Error deleting customer:', error);
+        alert('Error deleting customer');
+      });
   }
 
   function handlePrint() {
@@ -373,55 +401,14 @@ const CustomerDetail = () => {
       alert('Pop-up blocked. Please allow pop-ups for this website to print.');
       return;
     }
-    const customerReport = `
-      <html>
-      <head>
-        <title>Customer Report</title>
-        <style>
-          body { font-family: Arial, sans-serif; padding: 20px; }
-          h1 { text-align: center; }
-          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-          th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-          th { background-color: #f2f2f2; }
-        </style>
-      </head>
-      <body>
-        <h1>Customer Report</h1>
-        <table>
-          <tr><th>Customer ID</th><td>${customer.customerId}</td></tr>
-          <tr><th>Name</th><td>${customer.name}</td></tr>
-          <tr><th>Father Name</th><td>${customer.fatherName}</td></tr>
-          <tr><th>Mobile No</th><td>${customer.mobileNo}</td></tr>
-          <tr><th>CKYC No</th><td>${customer.ckycNo}</td></tr>
-          <tr><th>Address</th><td>${customer.address}</td></tr>
-          <tr><th>Vehicle Number</th><td>${customer.vehicleNumber}</td></tr>
-          <tr><th>Engine Number</th><td>${customer.engineNumber}</td></tr>
-          <tr><th>Make</th><td>${customer.make}</td></tr>
-          <tr><th>Model</th><td>${customer.model}</td></tr>
-          <tr><th>Chassis Number</th><td>${customer.chassisNumber}</td></tr>
-          <tr><th>Regn Number</th><td>${customer.regnNumber}</td></tr>
-          <tr><th>Ex-showroom Price</th><td>${customer.exShowroomPrice}</td></tr>
-          <tr><th>Sale Type</th><td>${customer.saleType}</td></tr>
-          <tr><th>Loan Number</th><td>${customer.loanNumber}</td></tr>
-          <tr><th>Sanction Amount</th><td>${customer.sanctionAmount}</td></tr>
-          <tr><th>Total Amount</th><td>${customer.totalAmount}</td></tr>
-          <tr><th>Paid Amount</th><td>${customer.paidAmount}</td></tr>
-          <tr><th>Down Payment</th><td>${customer.downPayment}</td></tr>
-          <tr><th>Tenure</th><td>${customer.tenure}</td></tr>
-          <tr><th>Sale Date</th><td>${customer.saleDate}</td></tr>
-          <tr><th>First EMI Date</th><td>${customer.firstEmiDate}</td></tr>
-          <tr><th>EMI Amount</th><td>${customer.emiAmount}</td></tr>
-          <tr><th>Loan Status</th><td>${customer.loanStatus}</td></tr>
-          <tr><th>Next EMI Date</th><td>${customer.nextEmiDate}</td></tr>
-        </table>
-      </body>
-      </html>
-    `;
-    printWindow.document.write(customerReport);
+    const letterHTML = generateLetterHTML(customer, company);
+    printWindow.document.write(letterHTML);
     printWindow.document.close();
     printWindow.focus();
     printWindow.print();
-    printWindow.close();
+    setTimeout(() => {
+      printWindow.close();
+    }, 1000);
   }
 };
 

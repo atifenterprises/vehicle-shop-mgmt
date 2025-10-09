@@ -131,9 +131,9 @@ const Dashboard = ({ openEMIDialog }) => {
         <section className="recent-payments-section">
           <div className="recent-payments-header">
             <h2>Recent Payments</h2>
-            <a href="/payments" className="view-all-link">View All</a>
+            <a href="/loan-repayments" className="view-all-link">View All</a>
           </div>
-          <table className="recent-payments-table">
+          <table className="customer-table">
             <thead>
               <tr>
                 <th>Customer</th>

@@ -19,6 +19,8 @@ const MultiStepForm = () => {
     make: '',
     model: '',
     chassisNumber: '',
+    batteryNumber: '',
+    batteryCount: 0,
     regnNumber: '',
     exShowroomPrice: '',
     // Sales - Cash fields
@@ -193,6 +195,14 @@ const MultiStepForm = () => {
               <input type="text" name="chassisNumber" value={formData.chassisNumber} onChange={handleChange} required />
             </div>
             <div className="form-row">
+              <label>Battery Number:</label>
+              <input type="text" name="batteryNumber" value={formData.batteryNumber} onChange={handleChange} required />
+            </div>
+            <div className="form-row">
+              <label>Battery Count:</label>
+              <input type="number" name="batteryCount" value={formData.batteryCount} onChange={handleChange} required />
+            </div>
+            <div className="form-row">
               <label>Regn Number:</label>
               <input type="text" name="regnNumber" value={formData.regnNumber} onChange={handleChange} required />
             </div>
@@ -324,6 +334,8 @@ const MultiStepForm = () => {
               <p><strong>Make:</strong> {formData.make}</p>
               <p><strong>Model:</strong> {formData.model}</p>
               <p><strong>Chassis Number:</strong> {formData.chassisNumber}</p>
+              <p><strong>Battery Number:</strong> {formData.batteryNumber}</p>
+              <p><strong>Battery Count:</strong> {formData.batteryCount}</p>
               <p><strong>Regn Number:</strong> {formData.regnNumber}</p>
               <p><strong>Ex-showroom Price:</strong> {formData.exShowroomPrice}</p>
             </div>
