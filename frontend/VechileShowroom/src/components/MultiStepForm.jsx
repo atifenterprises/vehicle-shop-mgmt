@@ -6,7 +6,7 @@ const MultiStepForm = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState({
     // Customer
-    customerId: '',
+    // customerId: '',
     date: new Date().toISOString().split('T')[0],
     name: '',
     fatherName: '',
@@ -115,20 +115,73 @@ const MultiStepForm = () => {
 
   const handleSubmit = async () => {
     try {
+
+            // Validate required fields before submission
+      const requiredCustomerFields = ['date', 'name', 'fatherName','mobileNo', 'ckycNo','address'];
+      const requiredVehicleFields = ['vehicleNumber', 'engineNumber', 'make', 'model', 'chassisNumber', 'regnNumber', 'exShowroomPrice'];
+      const requiredSaleFields = ['saleType', 'saleDate', 'totalAmount'];
+      const requiredCashFields = ['paidAmount', 'remainingAmount', 'lastPaymentDate'];
+      const requiredFinanceFields = ['loanNumber', 'downPayment', 'loanAmount', 'tenure', 'interestRate', 'firstEmiDate', 'emiAmount'];
+
+      for(const field of requiredCustomerFields)
+      {
+        if(!formData[field] || formData[field].toString() ==='')
+        {
+          alert(`Please fill in the ${field} field in Customer Details`);
+          return;
+        }
+      }
+      
+      for (const field of requiredVehicleFields) {
+        if (!formData[field] || formData[field].toString().trim() === '') {
+          alert(`Please fill in the ${field} field in Vehicle Details`);
+          return;
+        }
+      }
+
+      for (const field of requiredSaleFields) {
+        if (!formData[field] || formData[field].toString().trim() === '') {
+          alert(`Please fill in the ${field} field in Sales Details`);
+          return;
+        }
+      }
+
+      if (formData.saleType === 'Cash') {
+        for (const field of requiredCashFields) {
+          if (!formData[field] || formData[field].toString().trim() === '') {
+            alert(`Please fill in the ${field} field for Cash sale`);
+            return;
+          }
+        }
+      } else if (formData.saleType === 'Finance') {
+        for (const field of requiredFinanceFields) {
+          if (!formData[field] || (field === 'emiSchedule' ? !Array.isArray(formData[field]) || formData[field].length === 0 : formData[field].toString().trim() === '')) {
+            alert(`Please fill in the ${field} field for Finance sale`);
+            return;
+          }
+        }
+      } else {
+        alert('Please select a valid sale type (Cash or Finance)');
+        return;
+      }
+
       const response = await fetch('http://localhost:5000/api/sales', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       });
+      const responseData = await response.json();
+
       if (response.ok) {
         alert('Sale added successfully!');
         navigate('/');
       } else {
-        alert('Failed to add sale');
+        console.error('API Error:', responseData.error, responseData.details);
+        alert(`Failed to add sale: ${responseData.error}${responseData.details ? ` - ${responseData.details}` : ''}`);
       }
     } catch (error) {
-      console.error('Error:', error);
-      alert('Error adding sale');
+      console.error('Submission Error:', error.message);
+      alert(`Error adding sale: ${error.message}`);
     }
   };
 
@@ -138,10 +191,10 @@ const MultiStepForm = () => {
         return (
           <div className="form-step">
             <h3>Customer Details</h3>
-            <div className="form-row">
+            {/* <div className="form-row">
               <label>Customer ID:</label>
               <input type="text" name="customerId" value={formData.customerId} onChange={handleChange} required />
-            </div>
+            </div> */}
             <div className="form-row">
               <label>Date:</label>
               <input type="date" name="date" value={formData.date} onChange={handleChange} required />
@@ -209,25 +262,29 @@ const MultiStepForm = () => {
 
             {/* Sale Type Radio Buttons */}
             <div className="form-row">
-              <label>Sale Type:</label>
+              <label className="form-label">Sale Type:</label>
               <div className="radio-group">
-                <label className="radio-label">
+                <label htmlFor="saleTypeCash" className="radio-label">
                   <input
                     type="radio"
+                    id="saleTypeCash"
                     name="saleType"
                     value="Cash"
                     checked={formData.saleType === 'Cash'}
                     onChange={handleChange}
+                    required
                   />
                   Cash
                 </label>
-                <label className="radio-label">
+                <label htmlFor="saleTypeFinance" className="radio-label">
                   <input
                     type="radio"
+                    id="saleTypeFinance"
                     name="saleType"
                     value="Finance"
                     checked={formData.saleType === 'Finance'}
                     onChange={handleChange}
+                    required
                   />
                   Finance
                 </label>
@@ -309,7 +366,7 @@ const MultiStepForm = () => {
             <h3>Preview</h3>
             <div className="preview-section">
               <h4>Customer Details</h4>
-              <p><strong>Customer ID:</strong> {formData.customerId}</p>
+              {/* <p><strong>Customer ID:</strong> {formData.customerId}</p> */}
               <p><strong>Date:</strong> {formData.date}</p>
               <p><strong>Name:</strong> {formData.name}</p>
               <p><strong>Father Name:</strong> {formData.fatherName}</p>

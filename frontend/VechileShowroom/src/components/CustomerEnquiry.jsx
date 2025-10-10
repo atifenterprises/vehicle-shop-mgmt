@@ -91,7 +91,7 @@ const CustomerEnquiry = () => {
 
     if (!formData.customerName.trim()) newErrors.customerName = 'Customer name is required';
     if (!formData.customerAddress.trim()) newErrors.customerAddress = 'Customer address is required';
-    if (!formData.mobile.trim()) newErrors.mobile = 'Mobile number is required';
+    if (!formData.mobile || !String(formData.mobile).trim()) newErrors.mobile = 'Mobile number is required';
     if (!formData.interestedVehicle.trim()) newErrors.interestedVehicle = 'Interested vehicle is required';
     if (!formData.estimateDate) newErrors.estimateDate = 'Estimate date is required';
 
@@ -113,7 +113,7 @@ const CustomerEnquiry = () => {
 
     try {
       const url = editingEnquiry
-        ? `/api/customer-enquiries/${editingEnquiry.id}`
+        ? `/api/customer-enquiries/${editingEnquiry.cust_enquiry_id}`
         : '/api/customer-enquiries';
       const method = editingEnquiry ? 'PUT' : 'POST';
 
@@ -151,11 +151,11 @@ const CustomerEnquiry = () => {
   const handleEdit = (enquiry) => {
     setEditingEnquiry(enquiry);
     setFormData({
-      customerName: enquiry.customerName || '',
-      customerAddress: enquiry.customerAddress || '',
-      mobile: enquiry.mobile || '',
-      interestedVehicle: enquiry.interestedVehicle || '',
-      estimateDate: enquiry.estimateDate || ''
+      customerName: enquiry.customer_name || '',
+      customerAddress: enquiry.address || '',
+      mobile: enquiry.mobile_no || '',
+      interestedVehicle: enquiry.interested_vehicle || '',
+      estimateDate: enquiry.estimate_date || ''
     });
     setShowForm(true);
   };
@@ -278,6 +278,7 @@ const CustomerEnquiry = () => {
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value)}
             className="select-status"
+            title='Status'
           >
             <option>All Status</option>
             <option>New</option>
@@ -286,13 +287,17 @@ const CustomerEnquiry = () => {
           </select>
           <input
             type="date"
+            title='Date From'
             value={dateRange.from}
+            name='dateFrom'
             onChange={e => setDateRange(prev => ({ ...prev, from: e.target.value }))}
             className="input-date"
           />
           <input
             type="date"
+            title='Date To'
             value={dateRange.to}
+            name='dateTo'
             onChange={e => setDateRange(prev => ({ ...prev, to: e.target.value }))}
             className="input-date"
           />
@@ -319,17 +324,17 @@ const CustomerEnquiry = () => {
               </tr>
             ) : (
               filteredEnquiries.map((enquiry, index) => (
-                <tr key={enquiry.id || index}>
+                <tr key={enquiry.cust_enquiry_id || index}>
                   <td>{index + 1}</td>
-                  <td>{enquiry.customerName || '-'}</td>
+                  <td>{enquiry.customer_name || '-'}</td>
                   <td>
                     <div className="address-cell">
-                      {enquiry.customerAddress || '-'}
+                      {enquiry.address || '-'}
                     </div>
                   </td>
-                  <td>{enquiry.mobile || '-'}</td>
-                  <td>{enquiry.interestedVehicle || '-'}</td>
-                  <td>{enquiry.estimateDate || '-'}</td>
+                  <td>{enquiry.mobile_no || '-'}</td>
+                  <td>{enquiry.interested_vehicle || '-'}</td>
+                  <td>{enquiry.estimate_date || '-'}</td>
                   <td>
                     <span className={`status-badge ${enquiry.status?.toLowerCase().replace(' ', '-') || 'new'}`}>
                       {enquiry.status || 'New'}
@@ -346,7 +351,7 @@ const CustomerEnquiry = () => {
                       </button>
                       <button
                         className="btn btn-sm btn-delete"
-                        onClick={() => handleDelete(enquiry.id)}
+                        onClick={() => handleDelete(enquiry.cust_enquiry_id)}
                         title="Delete"
                       >
                         🗑️

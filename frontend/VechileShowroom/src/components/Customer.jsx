@@ -12,12 +12,11 @@ const Customer = () => {
 
   const fetchCustomers = async () => {
     try {
-      const response = await fetch('/api/customers');
+      const response = await fetch('/api/getcustomer');
       if (!response.ok) {
         throw new Error('Failed to fetch customers');
       }
-      const data = await response.json();
-      console.log('Fetched customers:', data);
+      const data = await response.json();      
       setCustomers(data);
       setFilteredCustomers(data);
     } catch (err) {
@@ -37,23 +36,23 @@ const Customer = () => {
       const lowerSearch = searchTerm.toLowerCase();
       filtered = filtered.filter(c =>
         c.name.toLowerCase().includes(lowerSearch) ||
-        c.loanNumber?.toLowerCase().includes(lowerSearch) ||
-        c.mobile?.toLowerCase().includes(lowerSearch)
+        //c.loanNumber?.toLowerCase().includes(lowerSearch) ||
+        c.mobile_no?.toLowerCase().includes(lowerSearch)
       );
     }
 
     // Filter by loan status
-    if (loanStatus !== 'All Status') {
-      filtered = filtered.filter(c => c.loanStatus === loanStatus);
-    }
+    // if (loanStatus !== 'All Status') {
+    //   filtered = filtered.filter(c => c.loanStatus === loanStatus);
+    // }
 
     // Filter by date range (assuming customers have a 'date' field in yyyy-mm-dd)
-    if (dateRange.from && dateRange.to) {
-      filtered = filtered.filter(c => {
-        if (!c.date) return false;
-        return c.date >= dateRange.from && c.date <= dateRange.to;
-      });
-    }
+    // if (dateRange.from && dateRange.to) {
+    //   filtered = filtered.filter(c => {
+    //     if (!c.date) return false;
+    //     return c.date >= dateRange.from && c.date <= dateRange.to;
+    //   });
+    // }
 
     setFilteredCustomers(filtered);
   }, [searchTerm, loanStatus, dateRange, customers]);
@@ -66,18 +65,18 @@ const Customer = () => {
 
   // Stats calculations
   const totalCustomers = customers.length;
-  const activeLoans = customers.filter(c => c.loanStatus === 'Active').length;
-  const overduePayments = customers.filter(c => c.loanStatus === 'Overdue').length;
-  const closedLoans = customers.filter(c => c.loanStatus === 'Closed').length;
-  const newThisMonth = customers.filter(c => {
-    if (!c.date) return false;
-    const date = new Date(c.date);
-    const now = new Date();
-    return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
-  }).length;
+  const activeLoans = customers.length; //customers.filter(c => c.loanStatus === 'Active').length;
+  const overduePayments = customers.length;//customers.filter(c => c.loanStatus === 'Overdue').length;
+  const closedLoans = customers.length;//customers.filter(c => c.loanStatus === 'Closed').length;
+  const newThisMonth = customers.length;//customers.filter(c => {
+  //   if (!c.date) return false;
+  //   const date = new Date(c.date);
+  //   const now = new Date();
+  //   return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+  // }).length;
 
   const handleRowClick = (customer) => {
-    navigate(`/customers/${customer.id}`, { state: { customer } });
+    navigate(`/customers/${customer.customer_id}`, { state: { customer } });
   };
 
   return (

@@ -12,7 +12,7 @@ const Vehicle = () => {
 
   const fetchVehicles = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/vehicles');
+      const response = await fetch('http://localhost:5000/api/getVehicles');
       if (!response.ok) {
         throw new Error('Failed to fetch vehicles');
       }
@@ -34,21 +34,21 @@ const Vehicle = () => {
     if (searchTerm.trim() !== '') {
       const lowerSearch = searchTerm.toLowerCase();
       filtered = filtered.filter(v =>
-        v.makeYear.toLowerCase().includes(lowerSearch) ||
-        v.model.toLowerCase().includes(lowerSearch) ||
-        (v.purchaseDate && v.purchaseDate.toString().includes(lowerSearch))
+        v.make.toLowerCase().includes(lowerSearch) ||
+        v.model.toLowerCase().includes(lowerSearch) //||
+      //  (v.purchaseDate && v.purchaseDate.toString().includes(lowerSearch))
       );
     }
 
     if (stockStatus !== 'All') {
-      if (stockStatus === 'In Stock') {
-        filtered = filtered.filter(v => v.vehicleStatus === 'In Stock');
+      if (stockStatus === 'Available') {
+        filtered = filtered.filter(v => v.vehicleStatus === 'Available');
       } else if (stockStatus === 'Sold') {
         filtered = filtered.filter(v => v.vehicleStatus === 'Sold');
       }
       else if (stockStatus === 'Low Stock') {
         // For vehicles that are in stock but might be low (you can adjust this logic based on your business rules)
-        filtered = filtered.filter(v => v.vehicleStatus === 'In Stock');
+        filtered = filtered.filter(v => v.vehicleStatus === 'Available');
       }
     }
 
@@ -85,7 +85,7 @@ const Vehicle = () => {
   const outOfStockCount = vehicles.filter(v => v.vehicleStatus === 'Sold').length;
 
   const handleRowClick = (vehicle) => {
-    navigate(`/vehicles/${vehicle.id}`, { state: { vehicle } });
+    navigate(`/vehicles/${vehicle.vehicle_id}`, { state: { vehicle } });
   };
 
   return (
@@ -197,16 +197,16 @@ const Vehicle = () => {
               </tr>
             ) : (
               filteredVehicles.map((vehicle, index) => (
-                <tr key={vehicle.id} onClick={() => handleRowClick(vehicle)} style={{ cursor: 'pointer' }}>
+                <tr key={vehicle.vehicle_id} onClick={() => handleRowClick(vehicle)} style={{ cursor: 'pointer' }}>
                   <td>{index + 1}</td>
                   <td>{vehicle.purchaseDate ? new Date(vehicle.purchaseDate).toLocaleDateString() : '-'}</td>
-                  <td>{vehicle.engibeNumber || vehicle.engineNumber || '-'}</td>
+                  <td>{vehicle.vehicle_number || vehicle.vehicle_number || '-'}</td>
                   <td>{vehicle.model || '-'}</td>
                   <td>{vehicle.color || '-'}</td>
-                  <td>{vehicle.chassisNumber || '-'}</td>
-                  <td>₹{vehicle.exShowroomPrice ? vehicle.exShowroomPrice.toLocaleString() : '0'}</td>
-                  <td>{vehicle.vehicleStatus || '-'}</td>
-                  <td>{vehicle.saleDate ? new Date(vehicle.saleDate).toLocaleDateString() : '-'}</td>
+                  <td>{vehicle.chasis_number || '-'}</td>
+                  <td>₹{vehicle.ex_showroom ? vehicle.ex_showroom.toLocaleString() : '0'}</td>
+                  <td>{vehicle.status || '-'}</td>
+                  <td>{vehicle.sold_date ? new Date(vehicle.sold_date).toLocaleDateString() : '-'}</td>
                 </tr>
               ))
             )}
