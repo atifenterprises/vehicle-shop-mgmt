@@ -5,7 +5,9 @@ export const generateLetterHTML = (customer, company) => {
       <title>Customer Letter</title>
       <style>
         body { font-family: 'Times New Roman', serif; margin: 25px; line-height: 1.3; font-size: 13px; }
-        .header { text-align: center; margin-bottom: 20px; }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+        .header-left { text-align: left; font-size: 18px; font-weight: bold; }
+        .header-center { text-align: center; flex: 1; }
         .company-name { font-size: 20px; font-weight: bold; }
         .company-details { font-size: 11px; margin-top: 8px; }
         .date { text-align: right; margin-bottom: 15px; }
@@ -33,19 +35,26 @@ export const generateLetterHTML = (customer, company) => {
     </head>
     <body>
       <div class="header">
-        <div class="company-name">${company.name}</div>
-        <div class="company-details">
-          ${company.address}<br>
-          Phone: ${company.phone} | Email: ${company.email}
+        <div class="header-left">
+          🚗Terra Finance 
+        </div>
+        <div class="header-center">
+          RASHMI EXPORT PVT LIMITED<br>
+          Corporate Office: Stesalit Tower, GP-Block, E-2-3, 8th Floor, Sector-v, Kolkata, 700091<br>
+          Compliance@terrafinance.co.jp<br>
+          GSTIN/UIN No.: 19AABCR4128M1YA<br>
+          CIN No.: U67100WB1990PTC0PTC049807<br>
+          Dealer Name: ATIF ENTERPRISES<br>
+          Paschimpally, Near SBI Bank, Kishanganj (Bihar) 855107, Mob.: 8809173140
         </div>
       </div>
 
       <div class="date">${new Date().toLocaleDateString()}</div>
 
       <div class="customer-address">
-        ${customer.name}<br>
+        Name: ${customer.name}<br>
         ${customer.fatherName ? `S/o ${customer.fatherName}<br>` : ''}
-        ${customer.address}<br>
+        Address: ${customer.address}<br>
         Mobile: ${customer.mobileNo}
       </div>
 
@@ -87,7 +96,9 @@ export const generateLetterHTML = (customer, company) => {
                 <td><strong>Registration Number:</strong> ${customer.regnNumber}</td>
               </tr>
               <tr>
-                <td colspan="3"><strong>Ex-showroom Price:</strong> ₹${customer.exShowroomPrice}</td>
+                <td><strong>Battery Number:</strong> ${customer.batteryNumber || 'N/A'}</td>
+                <td><strong>Battery Count:</strong> ${customer.batteryCount || 'N/A'}</td>
+                <td><strong>Ex-showroom Price:</strong> ₹${customer.exShowroomPrice}</td>
               </tr>
             </table>
 
@@ -140,19 +151,25 @@ export const generateLetterHTML = (customer, company) => {
                     <th>Interest</th>
                     <th>EMI Amount</th>
                     <th>Balance</th>
+                    <th>Bucket</th>
+                    <th>Overdue Charges</th>
+                    <th>Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   ${customer.emiSchedule && customer.emiSchedule.length > 0 ? customer.emiSchedule.map((emi, index) => `
                     <tr>
                       <td>${index + 1}</td>
-                      <td>${emi.dueDate || ''}</td>
+                      <td>${emi.date || ''}</td>
                       <td>₹${emi.principal || 0}</td>
                       <td>₹${emi.interest || 0}</td>
                       <td>₹${emi.amount || 0}</td>
                       <td>₹${emi.balance || 0}</td>
+                      <td>${emi.bucket || 0}</td>
+                      <td>₹${emi.overdueCharges || 0}</td>
+                      <td>${emi.status || 'Due'}</td>
                     </tr>
-                  `).join('') : '<tr><td colspan="6">No EMI schedule available</td></tr>'}
+                  `).join('') : '<tr><td colspan="9">No EMI schedule available</td></tr>'}
                 </tbody>
               </table>
             ` : ''}

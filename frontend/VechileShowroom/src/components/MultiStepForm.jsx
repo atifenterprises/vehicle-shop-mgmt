@@ -23,7 +23,10 @@ const MultiStepForm = () => {
     batteryCount: 0,
     regnNumber: '',
     exShowroomPrice: '',
+    // Sales
+    saleType: '',
     // Sales - Cash fields
+    shopNumber: '',
     saleDate: '',
     totalAmount: '',
     paidAmount: '',
@@ -248,6 +251,17 @@ const MultiStepForm = () => {
             {formData.saleType === 'Cash' && (
               <>
                 <div className="form-row">
+                  <label>Shop Number:</label>
+                  <select name="shopNumber" value={formData.shopNumber} onChange={handleChange} required>
+                    <option value="">Select Shop Number</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                  </select>
+                </div>
+                <div className="form-row">
                   <label>Sale Date:</label>
                   <input type="date" name="saleDate" value={formData.saleDate} onChange={handleChange} required />
                 </div>
@@ -346,6 +360,7 @@ const MultiStepForm = () => {
               {/* Cash Sale Preview */}
               {formData.saleType === 'Cash' && (
                 <>
+                  <p><strong>Shop Number:</strong> {formData.shopNumber}</p>
                   <p><strong>Sale Date:</strong> {formData.saleDate}</p>
                   <p><strong>Total Amount:</strong> {formData.totalAmount}</p>
                   <p><strong>Paid Amount:</strong> {formData.paidAmount}</p>

@@ -30,13 +30,13 @@ const Sidebar = ({ openEMIDialog = () => { } }) => {
         <a href="/vehicles" className="nav-link">
           <span className="icon">🚙</span> Vehicle(Stocks)
         </a>
-        <a href="#">
+        <a href="/batteries" className="nav-link">
           <span className="icon">🔋</span> Batteries
         </a>
         <a href="/customerEnquiry" className="nav-link">
           <span className="icon">📝</span> Customer Enquiry
         </a>
-        <button className="nav-link button-link" onClick={openEMIDialog} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'inherit', font: 'inherit' }}>
+        <button className="nav-link button-link button-link-no-padding" onClick={openEMIDialog}>
           <span className="icon">📅</span> EMI Calculator
         </button>
       </nav>

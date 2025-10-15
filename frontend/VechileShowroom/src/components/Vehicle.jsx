@@ -88,6 +88,82 @@ const Vehicle = () => {
     navigate(`/vehicles/${vehicle.id}`, { state: { vehicle } });
   };
 
+  const generateReportHTML = (vehicles) => {
+    const reportDate = new Date().toLocaleDateString();
+    return `
+      <html>
+      <head>
+        <title>Vehicle Management Report</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; }
+          h1 { text-align: center; }
+          .report-info { text-align: center; margin-bottom: 20px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+          th, td { border: 1px solid #000; padding: 8px; text-align: left; font-size: 12px; }
+          th { background-color: #f0f0f0; font-weight: bold; }
+          @media print {
+            body { margin: 10px; }
+            th, td { padding: 5px; font-size: 10px; }
+          }
+        </style>
+      </head>
+      <body>
+        <h1>Vehicle Management Report</h1>
+        <div class="report-info">
+          <p>Report Generated on: ${reportDate}</p>
+          <p>Total Records: ${vehicles.length}</p>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Sl. Number</th>
+              <th>Purchase Date</th>
+              <th>Vehicle Number</th>
+              <th>Model</th>
+              <th>Color</th>
+              <th>Chassis Number</th>
+              <th>Ex-Showroom Price</th>
+              <th>Status</th>
+              <th>Sold Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${vehicles.map((vehicle, index) => `
+              <tr>
+                <td>${index + 1}</td>
+                <td>${vehicle.purchaseDate ? new Date(vehicle.purchaseDate).toLocaleDateString() : '-'}</td>
+                <td>${vehicle.engibeNumber || vehicle.engineNumber || '-'}</td>
+                <td>${vehicle.model || '-'}</td>
+                <td>${vehicle.color || '-'}</td>
+                <td>${vehicle.chassisNumber || '-'}</td>
+                <td>₹${vehicle.exShowroomPrice ? vehicle.exShowroomPrice.toLocaleString() : '0'}</td>
+                <td>${vehicle.vehicleStatus || '-'}</td>
+                <td>${vehicle.saleDate ? new Date(vehicle.saleDate).toLocaleDateString() : '-'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </body>
+      </html>
+    `;
+  };
+
+  const handleGenerateReport = () => {
+    const printWindow = window.open('', '_blank', 'width=1000,height=700');
+    if (!printWindow) {
+      alert('Pop-up blocked. Please allow pop-ups for this website to print.');
+      return;
+    }
+    const reportHTML = generateReportHTML(filteredVehicles);
+    printWindow.document.write(reportHTML);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    setTimeout(() => {
+      printWindow.close();
+    }, 1000);
+  };
+
   return (
     <div className="customer-container">
       <header className="customer-header">
@@ -137,7 +213,7 @@ const Vehicle = () => {
           <p>Manage all vehicles and stocks information</p>
           <div className="customer-actions">
             <button className="btn btn-primary" onClick={() => navigate('/add-vehicle')}>+ Add New Vehicle</button>
-            <button className="btn btn-success">📊 Generte Report</button>
+            <button className="btn btn-success" onClick={handleGenerateReport}>📊 Generate Report</button>
           </div>
         </div>
 
@@ -197,7 +273,7 @@ const Vehicle = () => {
               </tr>
             ) : (
               filteredVehicles.map((vehicle, index) => (
-                <tr key={vehicle.id} onClick={() => handleRowClick(vehicle)} style={{ cursor: 'pointer' }}>
+                <tr key={vehicle.id} onClick={() => handleRowClick(vehicle)} className="clickable-row">
                   <td>{index + 1}</td>
                   <td>{vehicle.purchaseDate ? new Date(vehicle.purchaseDate).toLocaleDateString() : '-'}</td>
                   <td>{vehicle.engibeNumber || vehicle.engineNumber || '-'}</td>

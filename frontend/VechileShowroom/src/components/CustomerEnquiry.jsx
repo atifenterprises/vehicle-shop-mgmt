@@ -18,7 +18,8 @@ const CustomerEnquiry = () => {
     customerAddress: '',
     mobile: '',
     interestedVehicle: '',
-    estimateDate: ''
+    estimateDate: '',
+    status: 'New'
   });
   const [errors, setErrors] = useState({});
 
@@ -122,7 +123,6 @@ const CustomerEnquiry = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          status: editingEnquiry?.status || 'New',
           createdAt: editingEnquiry?.createdAt || new Date().toISOString()
         })
       });
@@ -136,7 +136,8 @@ const CustomerEnquiry = () => {
           customerAddress: '',
           mobile: '',
           interestedVehicle: '',
-          estimateDate: ''
+          estimateDate: '',
+          status: 'New'
         });
         fetchEnquiries();
       } else {
@@ -155,7 +156,8 @@ const CustomerEnquiry = () => {
       customerAddress: enquiry.customerAddress || '',
       mobile: enquiry.mobile || '',
       interestedVehicle: enquiry.interestedVehicle || '',
-      estimateDate: enquiry.estimateDate || ''
+      estimateDate: enquiry.estimateDate || '',
+      status: enquiry.status || 'New'
     });
     setShowForm(true);
   };
@@ -188,9 +190,82 @@ const CustomerEnquiry = () => {
       customerAddress: '',
       mobile: '',
       interestedVehicle: '',
-      estimateDate: ''
+      estimateDate: '',
+      status: 'New'
     });
     setErrors({});
+  };
+
+  const generateReportHTML = (enquiries) => {
+    const reportDate = new Date().toLocaleDateString();
+    return `
+      <html>
+      <head>
+        <title>Customer Enquiry Report</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; }
+          h1 { text-align: center; }
+          .report-info { text-align: center; margin-bottom: 20px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+          th, td { border: 1px solid #000; padding: 8px; text-align: left; font-size: 12px; }
+          th { background-color: #f0f0f0; font-weight: bold; }
+          @media print {
+            body { margin: 10px; }
+            th, td { padding: 5px; font-size: 10px; }
+          }
+        </style>
+      </head>
+      <body>
+        <h1>Customer Enquiry Report</h1>
+        <div class="report-info">
+          <p>Report Generated on: ${reportDate}</p>
+          <p>Total Records: ${enquiries.length}</p>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Sl. Number</th>
+              <th>Customer Name</th>
+              <th>Address</th>
+              <th>Mobile</th>
+              <th>Interested Vehicle</th>
+              <th>Estimate Date</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${enquiries.map((enquiry, index) => `
+              <tr>
+                <td>${index + 1}</td>
+                <td>${enquiry.customerName || '-'}</td>
+                <td>${enquiry.customerAddress || '-'}</td>
+                <td>${enquiry.mobile || '-'}</td>
+                <td>${enquiry.interestedVehicle || '-'}</td>
+                <td>${enquiry.estimateDate || '-'}</td>
+                <td>${enquiry.status || 'New'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </body>
+      </html>
+    `;
+  };
+
+  const handleGenerateReport = () => {
+    const printWindow = window.open('', '_blank', 'width=1000,height=700');
+    if (!printWindow) {
+      alert('Pop-up blocked. Please allow pop-ups for this website to print.');
+      return;
+    }
+    const reportHTML = generateReportHTML(filteredEnquiries);
+    printWindow.document.write(reportHTML);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    setTimeout(() => {
+      printWindow.close();
+    }, 1000);
   };
 
   // Stats calculations
@@ -208,7 +283,7 @@ const CustomerEnquiry = () => {
   return (
     <div className="customer-container">
       <header className="customer-header">
-        <h1><span className="customer-icon">📋</span> Customer Enquiry Management</h1>
+        <h1><span className="customer-icon">📋</span> Customer Enquiry Mgmt</h1>
         <button className="btn btn-primary" onClick={() => navigate('/')}>← Back to Dashboard</button>
       </header>
 
@@ -262,7 +337,7 @@ const CustomerEnquiry = () => {
             <button className="btn btn-primary" onClick={() => setShowForm(true)}>
               + Add New Enquiry
             </button>
-            <button className="btn btn-success">📊 Export Data</button>
+            <button className="btn btn-success" onClick={handleGenerateReport}>📊 Generate Report</button>
           </div>
         </div>
 
@@ -432,6 +507,20 @@ const CustomerEnquiry = () => {
                   required
                 />
                 {errors.estimateDate && <span className="error">{errors.estimateDate}</span>}
+              </div>
+
+              <div className="form-row">
+                <label>Status:</label>
+                <select
+                  name="status"
+                  value={formData.status}
+                  onChange={handleInputChange}
+                  required
+                >
+                  <option value="New">New</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Completed">Completed</option>
+                </select>
               </div>
 
               <div className="form-actions">

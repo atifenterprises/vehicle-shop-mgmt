@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 const AddVehicleForm = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
+    vehicle_id: '',
     purchaseDate: '',
     vehicleNumber: '',
     engineNumber: '',
@@ -13,6 +14,9 @@ const AddVehicleForm = () => {
     color: '',
     regnNumber: '',
     toolKit: '',
+    batterySerialNumber: '',
+    batteryType: '',
+    vehicleChargerType: '',
     exShowroomPrice: '',
     saleDate: '',
     vehicleStatus: 'In Stock',
@@ -43,16 +47,13 @@ const AddVehicleForm = () => {
     if (!formData.color) newErrors.color = 'Color is required';
     if (!formData.regnNumber) newErrors.regnNumber = 'Registration number is required';
     if (!formData.exShowroomPrice) newErrors.exShowroomPrice = 'Ex-showroom price is required';
-
     // Numeric field validation
     if (formData.exShowroomPrice && isNaN(formData.exShowroomPrice)) {
       newErrors.exShowroomPrice = 'Ex-showroom price must be a number';
     }
-
     if (formData.makeYear && (isNaN(formData.makeYear) || formData.makeYear < 1900 || formData.makeYear > new Date().getFullYear())) {
       newErrors.makeYear = 'Please enter a valid year';
     }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -215,6 +216,45 @@ const AddVehicleForm = () => {
               <option value="Not Available">Not Available</option>
             </select>
           </div>
+
+          <div className="form-row">
+            <label>Battery Serial Number:</label>
+            <input
+              type="text"
+              name="batterySerialNumber"
+              value={formData.batterySerialNumber}
+              onChange={handleChange}
+              placeholder="Enter battery serial number"
+            />
+          </div>
+
+          <div className="form-row">
+            <label>Battery Type:</label>
+            <select
+              name="batteryType"
+              value={formData.batteryType}
+              onChange={handleChange}
+            >
+              <option value="">Select battery type</option>
+              <option value="Lithium">Lithium</option>
+              <option value="Lead Acid">Lead Acid</option>
+              <option value="Not Available">Not Available</option>
+            </select>
+          </div>
+
+          <div className="form-row">
+            <label>Vehicle Charger Type:</label>
+            <input
+              type="text"
+              name="vehicleChargerType"
+              value={formData.vehicleChargerType}
+              onChange={handleChange}
+              placeholder="Enter vehicle charger type"
+            />
+          </div>
+
+
+
           <div className="form-row">
             <label>Ex-Showroom Price:</label>
             <input
@@ -239,6 +279,7 @@ const AddVehicleForm = () => {
               onChange={handleChange}
             />
           </div>
+          
 
           <div className="form-row">
             <label>Vehicle Status:</label>

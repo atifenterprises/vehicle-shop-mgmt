@@ -19,7 +19,10 @@ const VehicleDetails = () => {
     color: '',
     regnNumber: '',
     toolKit: '',
-    batteryNumber: '',
+    batterySerialNumber: '',
+    batteryType: '',
+    vehicleChargerType: '',
+
     exShowroomPrice: '',
     saleDate: '',
     vehicleStatus: 'In Stock',
@@ -69,6 +72,10 @@ const VehicleDetails = () => {
 
   const handleDelete = () => {
     alert('Delete functionality not implemented yet.');
+  };
+
+  const handlePrint = () => {
+    window.print();
   };
 
   // Show loading state
@@ -183,6 +190,24 @@ const VehicleDetails = () => {
           </select>
         </label>
         <label>
+          Battery Serial Number:
+          <input type="text" name="batterySerialNumber" value={vehicle.batterySerialNumber} onChange={handleChange} />
+        </label>
+        <label>
+          Battery Type:
+          <select name="batteryType" value={vehicle.batteryType} onChange={handleChange}>
+            <option value="">Select battery type</option>
+            <option value="Lithium">Lithium</option>
+            <option value="Lead Acid">Lead Acid</option>
+            <option value="Not Available">Not Available</option>
+          </select>
+        </label>
+        <label>
+          Vehicle Charger Name:
+          <input type="text" name="vehicleChargerType" value={vehicle.vehicleChargerType} onChange={handleChange} />
+        </label>
+
+        <label>
           Ex-Showroom Price:
           <input type="number" name="exShowroomPrice" value={vehicle.exShowroomPrice} onChange={handleChange} />
         </label>
@@ -203,6 +228,7 @@ const VehicleDetails = () => {
       <div className="customer-detail-actions">
         <button className="btn btn-primary" onClick={handleEdit}>Edit</button>
         <button className="btn btn-delete" onClick={handleDelete}>Delete</button>
+        <button className="btn btn-secondary" onClick={handlePrint}>Print Details</button>
       </div>
     </div>
   );

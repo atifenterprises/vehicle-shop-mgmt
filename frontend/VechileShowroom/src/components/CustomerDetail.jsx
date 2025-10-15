@@ -31,7 +31,10 @@ const CustomerDetail = () => {
     chassisNumber: '',
     regnNumber: '',
     exShowroomPrice: '',
+    batteryNumber: '',
+    batteryCount: '',
     saleType: '',
+    shopNumber: '',
     loanNumber: '',
     sanctionAmount: '',
     totalAmount: '',
@@ -83,6 +86,15 @@ const CustomerDetail = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setCustomer(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleEmiStatusChange = (index, newStatus) => {
+    setCustomer(prev => ({
+      ...prev,
+      emiSchedule: prev.emiSchedule.map((emi, i) =>
+        i === index ? { ...emi, status: newStatus, overdueCharges: newStatus === 'overdue' ? 650 : 0 } : emi
+      )
+    }));
   };
 
   // Helper function to determine which fields to show based on sale type
@@ -257,12 +269,24 @@ const CustomerDetail = () => {
           Ex-showroom Price:
           <input type="number" name="exShowroomPrice" value={customer.exShowroomPrice} onChange={handleChange} />
         </label>
+        <label>
+          Battery Number:
+          <input type="text" name="batteryNumber" value={customer.batteryNumber} onChange={handleChange} />
+        </label>
+        <label>
+          Battery Count:
+          <input type="number" name="batteryCount" value={customer.batteryCount} onChange={handleChange} />
+        </label>
 
         {/* Sales Details */}
         <h3>Sales Details</h3>
         <label>
           Sale Type:
           <input type="text" name="saleType" value={customer.saleType} onChange={handleChange} />
+        </label>
+        <label>
+          Shop Number:
+          <input type="text" name="shopNumber" value={customer.shopNumber} onChange={handleChange} />
         </label>
 
         {/* Finance Sale Fields */}
@@ -309,6 +333,54 @@ const CustomerDetail = () => {
                 <option value="Overdue">Overdue</option>
               </select>
             </label>
+          </>
+        )}
+
+        {/* EMI Schedule */}
+        {fieldConfig.showFinanceFields && customer.emiSchedule && customer.emiSchedule.length > 0 && (
+          <>
+            <h3>EMI Schedule</h3>
+            <div className="emi-schedule">
+              <table className="customer-table">
+                <thead>
+                  <tr>
+                    <th>EMI No.</th>
+                    <th>Due Date</th>
+                    <th>Principal</th>
+                    <th>Interest</th>
+                    <th>Amount</th>
+                    <th>Balance</th>
+                    <th>Bucket (Overdue EMIs)</th>
+                    <th>Overdue Charges</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {customer.emiSchedule.map((emi, index) => (
+                    <tr key={index}>
+                      <td>{emi.emiNo}</td>
+                      <td>{emi.date}</td>
+                      <td>₹{emi.principal.toLocaleString('en-IN')}</td>
+                      <td>₹{emi.interest.toLocaleString('en-IN')}</td>
+                      <td>₹{emi.amount.toLocaleString('en-IN')}</td>
+                      <td>₹{emi.balance.toLocaleString('en-IN')}</td>
+                      <td>{emi.bucket}</td>
+                      <td>₹{emi.overdueCharges.toLocaleString('en-IN')}</td>
+                      <td>
+                        <select
+                          value={emi.status}
+                          onChange={(e) => handleEmiStatusChange(index, e.target.value)}
+                        >
+                          <option value="paid">Paid</option>
+                          <option value="due">Due</option>
+                          <option value="overdue">Overdue</option>
+                        </select>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </>
         )}
 
