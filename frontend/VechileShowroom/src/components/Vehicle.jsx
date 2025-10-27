@@ -34,9 +34,19 @@ const Vehicle = () => {
     if (searchTerm.trim() !== '') {
       const lowerSearch = searchTerm.toLowerCase();
       filtered = filtered.filter(v =>
-        v.makeYear.toLowerCase().includes(lowerSearch) ||
-        v.model.toLowerCase().includes(lowerSearch) ||
-        (v.purchaseDate && v.purchaseDate.toString().includes(lowerSearch))
+        (v.vehicleNumber && v.vehicleNumber.toLowerCase().includes(lowerSearch)) ||
+        (v.engineNumber && v.engineNumber.toLowerCase().includes(lowerSearch)) ||
+        (v.make && v.make.toLowerCase().includes(lowerSearch)) ||
+        (v.model && v.model.toLowerCase().includes(lowerSearch)) ||
+        (v.chassisNumber && v.chassisNumber.toLowerCase().includes(lowerSearch)) ||
+        (v.batterySerialNumber && v.batterySerialNumber.toLowerCase().includes(lowerSearch)) ||
+        (v.regnNumber && v.regnNumber.toLowerCase().includes(lowerSearch)) ||
+        (v.color && v.color.toLowerCase().includes(lowerSearch)) ||
+        (v.toolKit && v.toolKit.toLowerCase().includes(lowerSearch)) ||
+        (v.batteryType && v.batteryType.toLowerCase().includes(lowerSearch)) ||
+        (v.vehicleChargerName && v.vehicleChargerName.toLowerCase().includes(lowerSearch)) ||
+        (v.purchaseDate && v.purchaseDate.toString().includes(lowerSearch)) ||
+        (v.saleDate && v.saleDate.toString().includes(lowerSearch))
       );
     }
 
@@ -85,7 +95,84 @@ const Vehicle = () => {
   const outOfStockCount = vehicles.filter(v => v.vehicleStatus === 'Sold').length;
 
   const handleRowClick = (vehicle) => {
-    navigate(`/vehicles/${vehicle.id}`, { state: { vehicle } });
+    console.log(vehicle);
+    navigate(`/vehicles/${vehicle.vehicleNumber}`, { state: { vehicle } });
+  };
+
+  const generateReportHTML = (vehicles) => {
+    const reportDate = new Date().toLocaleDateString();
+    return `
+      <html>
+      <head>
+        <title>Vehicle Management Report</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; }
+          h1 { text-align: center; }
+          .report-info { text-align: center; margin-bottom: 20px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+          th, td { border: 1px solid #000; padding: 8px; text-align: left; font-size: 12px; }
+          th { background-color: #f0f0f0; font-weight: bold; }
+          @media print {
+            body { margin: 10px; }
+            th, td { padding: 5px; font-size: 10px; }
+          }
+        </style>
+      </head>
+      <body>
+        <h1>Vehicle Management Report</h1>
+        <div class="report-info">
+          <p>Report Generated on: ${reportDate}</p>
+          <p>Total Records: ${vehicles.length}</p>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Sl. Number</th>
+              <th>Purchase Date</th>
+              <th>Vehicle Number</th>
+              <th>Model</th>
+              <th>Color</th>
+              <th>Chassis Number</th>
+              <th>Ex-Showroom Price</th>
+              <th>Status</th>
+              <th>Sold Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${vehicles.map((vehicle, index) => `
+              <tr>
+                <td>${index + 1}</td>
+                <td>${vehicle.purchaseDate ? new Date(vehicle.purchaseDate).toLocaleDateString() : '-'}</td>
+                <td>${vehicle.vehicleNumber || '-'}</td>
+                <td>${vehicle.model || '-'}</td>
+                <td>${vehicle.color || '-'}</td>
+                <td>${vehicle.chassisNumber || '-'}</td>
+                <td>₹${vehicle.exshowroomPrice ? vehicle.exshowroomPrice.toLocaleString() : '0'}</td>
+                <td>${vehicle.vehicleStatus || '-'}</td>
+                <td>${vehicle.saleDate ? new Date(vehicle.saleDate).toLocaleDateString() : '-'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </body>
+      </html>
+    `;
+  };
+
+  const handleGenerateReport = () => {
+    const printWindow = window.open('', '_blank', 'width=1000,height=700');
+    if (!printWindow) {
+      alert('Pop-up blocked. Please allow pop-ups for this website to print.');
+      return;
+    }
+    const reportHTML = generateReportHTML(filteredVehicles);
+    printWindow.document.write(reportHTML);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    setTimeout(() => {
+      printWindow.close();
+    }, 1000);
   };
 
   return (
@@ -137,14 +224,14 @@ const Vehicle = () => {
           <p>Manage all vehicles and stocks information</p>
           <div className="customer-actions">
             <button className="btn btn-primary" onClick={() => navigate('/add-vehicle')}>+ Add New Vehicle</button>
-            <button className="btn btn-success">📊 Generte Report</button>
+            <button className="btn btn-success" onClick={handleGenerateReport}>📊 Generate Report</button>
           </div>
         </div>
 
         <div className="customer-filters">
           <input
             type="text"
-            placeholder="Search by name, Model No, Chesis No..."
+            placeholder="Search by Vehicle No, Engine No, Make, Model, Chassis No..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             className="input-search"
@@ -174,45 +261,62 @@ const Vehicle = () => {
           <button className="btn btn-clear" onClick={clearFilters}>Clear</button>
         </div>
 
-        <table className="customer-table">
-          <thead>
-            <tr>
-              <th>Sl. Number</th>
-              <th>Purchase Date</th>
-              <th>Vehicle Number</th>
-              <th>Model</th>
-              <th>Color</th>
-              <th>Chassis Number</th>
-              <th>Ex-Showroom Price</th>
-              <th>Status</th>
-              <th>Sold Date</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredVehicles.length === 0 ? (
+        <div className="table-container">
+          <table className="customer-table">
+            <thead>
               <tr>
-                <td colSpan="11" style={{ textAlign: 'center', padding: '20px' }}>
-                  No vehicles found matching the current filters.
-                </td>
+                <th>Sl. Number</th>
+                <th>Purchase Date</th>
+                <th>Vehicle Number</th>
+                <th>Engine Number</th>
+                <th>Make</th>
+                <th>Model</th>
+                <th>Color</th>
+                <th>Chassis Number</th>
+                <th>Regn Number</th>
+                <th>Tool Kit</th>
+                <th>Battery Serial</th>
+                <th>Battery Count</th>
+                <th>Battery Type</th>
+                <th>Charger Type</th>
+                <th>Ex-Showroom Price</th>
+                <th>Status</th>
+                <th>Sold Date</th>
               </tr>
-            ) : (
-              filteredVehicles.map((vehicle, index) => (
-                <tr key={vehicle.id} onClick={() => handleRowClick(vehicle)} style={{ cursor: 'pointer' }}>
-                  <td>{index + 1}</td>
-                  <td>{vehicle.purchaseDate ? new Date(vehicle.purchaseDate).toLocaleDateString() : '-'}</td>
-                  <td>{vehicle.engibeNumber || vehicle.engineNumber || '-'}</td>
-                  <td>{vehicle.model || '-'}</td>
-                  <td>{vehicle.color || '-'}</td>
-                  <td>{vehicle.chassisNumber || '-'}</td>
-                  <td>₹{vehicle.exShowroomPrice ? vehicle.exShowroomPrice.toLocaleString() : '0'}</td>
-                  <td>{vehicle.vehicleStatus || '-'}</td>
-                  <td>{vehicle.saleDate ? new Date(vehicle.saleDate).toLocaleDateString() : '-'}</td>
+            </thead>
+            <tbody>
+              {filteredVehicles.length === 0 ? (
+                <tr>
+                  <td colSpan="17" style={{ textAlign: 'center', padding: '20px' }}>
+                    No vehicles found matching the current filters.
+                  </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-
+              ) : (
+                filteredVehicles.map((vehicle, index) => (
+                  <tr key={vehicle.vehicleNumber} onClick={() => handleRowClick(vehicle)} className="clickable-row">
+                    <td>{index + 1}</td>
+                    <td>{vehicle.purchaseDate ? new Date(vehicle.purchaseDate).toLocaleDateString() : '-'}</td>
+                    <td>{vehicle.vehicleNumber || '-'}</td>
+                    <td>{vehicle.engineNumber || '-'}</td>
+                    <td>{vehicle.make || '-'}</td>
+                    <td>{vehicle.model || '-'}</td>
+                    <td>{vehicle.color || '-'}</td>
+                    <td>{vehicle.chassisNumber || '-'}</td>
+                    <td>{vehicle.regnNumber || '-'}</td>
+                    <td>{vehicle.toolKit || '-'}</td>
+                    <td>{vehicle.batterySerialNumber || '-'}</td>
+                    <td>{vehicle.batteryCount || '-'}</td>
+                    <td>{vehicle.batteryType || '-'}</td>
+                    <td>{vehicle.vehicleChargerName || '-'}</td>
+                    <td>₹{vehicle.exshowroomPrice ? parseFloat(vehicle.exshowroomPrice).toLocaleString() : '0'}</td>
+                    <td>{vehicle.vehicleStatus || '-'}</td>
+                    <td>{vehicle.saleDate ? new Date(vehicle.saleDate).toLocaleDateString() : '-'}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </section>
     </div>
   );

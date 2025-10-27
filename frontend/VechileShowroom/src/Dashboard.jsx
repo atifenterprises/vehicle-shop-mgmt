@@ -1,10 +1,14 @@
 import React, { useEffect, useState } from "react";
 import Sidebar from './Sidebar.jsx';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis } from 'recharts';
 
 const Dashboard = ({ openEMIDialog }) => {
   const [metrics, setMetrics] = useState(null);
   const [monthlyCollection, setMonthlyCollection] = useState(null);
   const [loanStatus, setLoanStatus] = useState(null);
+  const [salesByType, setSalesByType] = useState(null);
+  const [recentPayments, setRecentPayments] = useState(null);
+  const [duePayments, setDuePayments] = useState(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(window.innerWidth < 768);
 
   useEffect(() => {
@@ -26,12 +30,24 @@ const Dashboard = ({ openEMIDialog }) => {
       .then((res) => res.json())
       .then((data) => setLoanStatus(data));
 
+    fetch("http://localhost:5000/api/dashboard/sales-by-type")
+      .then((res) => res.json())
+      .then((data) => setSalesByType(data));
+
+    fetch("http://localhost:5000/api/dashboard/recent-payments")
+      .then((res) => res.json())
+      .then((data) => setRecentPayments(data));
+
+    fetch("http://localhost:5000/api/dashboard/due-payments")
+      .then((res) => res.json())
+      .then((data) => setDuePayments(data));
+
     return () => {
       window.removeEventListener('resize', handleResize);
     };
   }, []);
 
-  if (!metrics || !monthlyCollection || !loanStatus) {
+  if (!metrics || !monthlyCollection || !loanStatus || !salesByType) {
     return <div>Loading...</div>;
   }
 
@@ -59,8 +75,8 @@ const Dashboard = ({ openEMIDialog }) => {
         <section className="metrics">
           <div className="metric-card">
             <div className="metric-info">
-              <div className="metric-label">Total Loans</div>
-              <div className="metric-value">{metrics.totalLoans}</div>
+              <div className="metric-label">Total Sales</div>
+              <div className="metric-value">{metrics.totalSales}</div>
               <div className="metric-change green">{metrics.totalLoansChange} from last month</div>
             </div>
             <div className="metric-icon blue">💲</div>
@@ -68,26 +84,26 @@ const Dashboard = ({ openEMIDialog }) => {
 
           <div className="metric-card">
             <div className="metric-info">
-              <div className="metric-label">Active Loans</div>
-              <div className="metric-value">{metrics.activeLoans}</div>
-              <div className="metric-change green">{metrics.activeLoansRate} active rate</div>
+              <div className="metric-label">Cash Sales Count</div>
+              <div className="metric-value">{metrics.cashSalesCount}</div>
+              <div className="metric-change green">₹{metrics.cashSalesAmount.toLocaleString('en-IN')} total</div>
             </div>
             <div className="metric-icon green">✔️</div>
           </div>
 
           <div className="metric-card">
             <div className="metric-info">
-              <div className="metric-label">Overdue Payments</div>
-              <div className="metric-value">{metrics.overduePayments}</div>
-              <div className="metric-change red">{metrics.overduePaymentsNote}</div>
+              <div className="metric-label">Battery Sales Count</div>
+              <div className="metric-value">{metrics.batterySalesCount}</div>
+              <div className="metric-change green">₹{metrics.batterySalesAmount.toLocaleString('en-IN')} total</div>
             </div>
-            <div className="metric-icon red">❗</div>
+            <div className="metric-icon red">🔋</div>
           </div>
 
           <div className="metric-card">
             <div className="metric-info">
-              <div className="metric-label">Total Collection</div>
-              <div className="metric-value">{metrics.totalCollectionFormatted}</div>
+              <div className="metric-label">Total Revenue</div>
+              <div className="metric-value">₹{metrics.totalRevenue.toLocaleString('en-IN')}</div>
               <div className="metric-change green">{metrics.totalCollectionChange} from last month</div>
             </div>
             <div className="metric-icon purple">📋</div>
@@ -97,34 +113,49 @@ const Dashboard = ({ openEMIDialog }) => {
         <section className="charts">
           <div className="chart-card">
             <h2>Monthly Collection Trend</h2>
-            {/* Placeholder for chart */}
-            <div className="chart-placeholder">
-              {monthlyCollection.months.map((month, idx) => (
-                <div key={month} className="bar" style={{ height: monthlyCollection.collection[idx] / 1000 + "rem" }}>
-                  <span className="bar-label">{month}</span>
-                </div>
-              ))}
-            </div>
+            {monthlyCollection && (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={monthlyCollection.months.map((month, idx) => ({
+                  month,
+                  collection: monthlyCollection.collection[idx]
+                }))}>
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip formatter={(value) => `₹${value.toLocaleString('en-IN')}`} contentStyle={{ backgroundColor: '#ffffff', border: 'none', color: 'black', fontWeight: 'bold' }} />
+                  <Bar dataKey="collection" fill="#034295ff" activeBar={{fill: "#082e5c", stroke: "#b6e606ff", strokeWidth: 4, radius: 4 }} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
 
           <div className="chart-card">
-            <h2>Loan Status Distribution</h2>
-            {/* Placeholder for pie chart */}
-            <div className="pie-chart-placeholder">
-              {loanStatus.statuses.map((status, idx) => {
-                const statusClass = status.toLowerCase().replace(' ', '-');
-                const icon = status === 'Active' ? '✔️' : status === 'Closed' ? '✅' : '❗';
-                return (
-                  <div key={status} className={`pie-segment ${statusClass}`}>
-                    <div className="segment-icon">{icon}</div>
-                    <div className="segment-content">
-                      <div className="segment-label">{status}</div>
-                      <div className="segment-count">({loanStatus.counts[idx]})</div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <h2>Sales by Type</h2>
+            {salesByType && (
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={salesByType.types.map((type, idx) => ({
+                      name: type,
+                      value: salesByType.amounts[idx],
+                    }))}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                    activeShape={false}
+                  >
+                    {salesByType.types.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={['#0088FE', '#00C49F', '#FFBB28', '#FF8042'][index % 4]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value) => `₹${value.toLocaleString('en-IN')}`} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </section>
 
@@ -144,27 +175,15 @@ const Dashboard = ({ openEMIDialog }) => {
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td>Rajesh Kumar</td>
-                <td>LN-2024-001</td>
-                <td>₹12,500</td>
-                <td>Dec 15, 2024</td>
-                <td><span className="status-paid">Paid</span></td>
-              </tr>
-              <tr>
-                <td>Priya Sharma</td>
-                <td>LN-2024-008</td>
-                <td>₹15,200</td>
-                <td>Dec 14, 2024</td>
-                <td><span className="status-paid">Paid</span></td>
-              </tr>
-              <tr>
-                <td>Amit Patel</td>
-                <td>LN-2024-015</td>
-                <td>₹9,800</td>
-                <td>Dec 14, 2024</td>
-                <td><span className="status-due">Due</span></td>
-              </tr>
+              {recentPayments && recentPayments.map((payment, idx) => (
+                <tr key={idx}>
+                  <td>{payment.customer}</td>
+                  <td>{payment.loanNo}</td>
+                  <td>₹{parseFloat(payment.amount).toLocaleString('en-IN')}</td>
+                  <td>{new Date(payment.date).toLocaleDateString('en-IN')}</td>
+                  <td><span className="status-paid">{payment.status}</span></td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </section>
@@ -174,20 +193,16 @@ const Dashboard = ({ openEMIDialog }) => {
             <span className="alert-icon">❗</span>
             <h3>Due Payments Alert</h3>
           </div>
-          <div className="due-payment-item">
-            <div className="due-payment-info">
-              <strong>Suresh Reddy - LN-2024-003</strong>
-              <div className="due-date">Due: Today</div>
+          {duePayments && duePayments.map((due, idx) => (
+            <div key={idx} className="due-payment-item">
+              <div className="due-payment-info">
+                <strong>{due.customer} - {due.loanNo}</strong>
+                <div className="due-date">Due: {new Date(due.dueDate).toLocaleDateString('en-IN')}</div>
+                <div className="due-type">{due.type}</div>
+              </div>
+              <div className="due-amount">₹{parseFloat(due.amount).toLocaleString('en-IN')}</div>
             </div>
-            <div className="due-amount">₹11,200</div>
-          </div>
-          <div className="due-payment-item">
-            <div className="due-payment-info">
-              <strong>Neha Gupta - LN-2024-007</strong>
-              <div className="due-date">Due: Yesterday</div>
-            </div>
-            <div className="due-amount">₹13,800</div>
-          </div>
+          ))}
         </section>
       </main>
     </div>

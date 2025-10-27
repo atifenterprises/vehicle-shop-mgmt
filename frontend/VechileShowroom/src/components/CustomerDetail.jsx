@@ -14,6 +14,7 @@ const CustomerDetail = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { id } = useParams();
+
   const customerFromState = location.state?.customer;
 
   const [customer, setCustomer] = useState({
@@ -31,7 +32,10 @@ const CustomerDetail = () => {
     chassisNumber: '',
     regnNumber: '',
     exShowroomPrice: '',
+    batterySerialName: '',
+    batteryCount: '',
     saleType: '',
+    shopNumber: '',
     loanNumber: '',
     sanctionAmount: '',
     totalAmount: '',
@@ -41,6 +45,7 @@ const CustomerDetail = () => {
     saleDate: '',
     firstEmiDate: '',
     emiAmount: '',
+    interestRate: '',
     emiSchedule: [],
     loanStatus: '',
     nextEmiDate: '',
@@ -51,16 +56,61 @@ const CustomerDetail = () => {
   const [error, setError] = useState(null);
 
   // Fetch customer data from backend using ID
-  const fetchCustomerData = async (customerId) => {
+  const fetchCustomerData = async (id) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`http://localhost:5000/api/customers/${customerId}`);
+
+      const response = await fetch(`http://localhost:5000/api/customers/${id}`);
+
       if (!response.ok) {
         throw new Error('Failed to fetch customer data');
       }
-      const data = await response.json();
-      setCustomer(data);
+      const data = await response.json();    
+
+      setCustomer({
+        customerId: data.customer?.customerId || '',
+        date: data.customer?.date || '',
+        name: data.customer?.name || '',
+        fatherName: data.customer?.fatherName || '',
+        mobileNo: data.customer?.mobileNo || '',
+        ckycNo: data.customer?.ckycNo || '',
+        address: data.customer?.address || '',
+        vehicleNumber: data.vehicle?.vehicleNumber || '',
+        engineNumber: data.vehicle?.engineNumber || '',
+        make: data.vehicle?.make || '',
+        model: data.vehicle?.model || '',
+        chassisNumber: data.vehicle?.chassisNumber || '',
+        regnNumber: data.vehicle?.regnNumber || '',
+        exShowroomPrice: data.vehicle?.exshowroomPrice ? data.vehicle.exshowroomPrice.toString() : '',
+        batterySerialName: data.vehicle?.batterySerialName || '',
+        batteryCount: data.vehicle?.batteryCount ? data.vehicle.batteryCount.toString() : '',
+        color: data.vehicle?.color || '',
+        toolKit: data.vehicle?.toolKit || '',
+        batteryType: data.vehicle?.batteryType || '',
+        vehicleChargerType: data.vehicle?.vehicleChargerType || '',
+        purchaseDate: data.vehicle?.purchaseDate || '',
+        saleDate: data.vehicle?.saleDate || '',
+        vehicleStatus: data.vehicle?.vehicleStatus || '',
+        saleType: data.sales?.saleType || '',
+        shopNumber: data.sales?.shopNumber ? data.sales.shopNumber.toString() : '',
+        loanNumber: data.sales?.loanNumber || '',
+        sanctionAmount: '', // Not in API response; set to empty or fetch from elsewhere
+        totalAmount: data.sales?.totalAmount ? data.sales.totalAmount.toString() : '',
+        paidAmount: data.sales?.paidAmount ? data.sales.paidAmount.toString() : '',
+        downPayment: data.sales?.downPayment ? data.sales.downPayment.toString() : '',
+        loanAmount: data.sales?.loanAmount ? data.sales.loanAmount.toString() : '',
+        tenure: data.sales?.tenure ? data.sales.tenure.toString() : '',
+        firstEmiDate: data.sales?.firstEMIDate || '',
+        emiAmount: data.sales?.EMIAmount ? data.sales.EMIAmount.toString() : '',
+        emiSchedule: data.sales?.emiSchedule && Array.isArray(data.sales.emiSchedule) ? updateBuckets(data.sales.emiSchedule) : [],
+        loanStatus: data.summary?.loanStatus || '',
+        nextEmiDate: data.summary?.nextEmiDate || '',
+        promisedPaymentDate: '', // Not in API response; set to empty or fetch from elsewhere
+      });
+
+
+
     } catch (err) {
       setError(err.message);
       console.error('Error fetching customer:', err);
@@ -70,19 +120,176 @@ const CustomerDetail = () => {
   };
 
   useEffect(() => {
-    // If customer data is passed from state (from Customer.jsx), use it
-    if (customerFromState) {
+    //fetch from backend using ID from URL
+    if (id) {
+      fetchCustomerData(id);
+    } else if (customerFromState) { // If customer data is passed from state (from Customer.jsx), use it
+      console.log('customerFromState :: ', { customerFromState });
       setCustomer(customerFromState);
     }
-    // Otherwise, fetch from backend using ID from URL
-    else if (id) {
-      fetchCustomerData(id);
-    }
   }, [customerFromState, id]);
+
+  // Generate EMI schedule when loanAmount, tenure, interestRate, firstEmiDate change
+  useEffect(() => {
+    const loanAmount = parseFloat(customer.loanAmount);
+    const tenure = parseInt(customer.tenure);
+    const interestRate = parseFloat(customer.interestRate);
+    const firstEmiDate = customer.firstEmiDate;
+
+    if (loanAmount > 0 && tenure > 0 && interestRate > 0 && firstEmiDate && (!customer.emiSchedule || customer.emiSchedule.length === 0)) {
+      const emiSchedule = generateEmiSchedule(loanAmount, tenure, interestRate, firstEmiDate);
+      setCustomer(prev => ({ ...prev, emiSchedule, emiAmount: emiSchedule[0]?.amount.toString() || '' }));
+    }
+  }, [customer.loanAmount, customer.tenure, customer.interestRate, customer.firstEmiDate, customer.emiSchedule]);
+
+  // Function to generate EMI schedule
+  const generateEmiSchedule = (loanAmount, tenure, interestRate, firstEmiDate) => {
+    const monthlyRate = interestRate / 12 / 100;
+    const emiAmount = (loanAmount * monthlyRate * Math.pow(1 + monthlyRate, tenure)) / (Math.pow(1 + monthlyRate, tenure) - 1);
+    const schedule = [];
+    let balance = loanAmount;
+    let date = new Date(firstEmiDate);
+
+    for (let i = 1; i <= tenure; i++) {
+      const interest = balance * monthlyRate;
+      const principal = emiAmount - interest;
+      balance -= principal;
+
+      schedule.push({
+        emiNo: i,
+        date: date.toISOString().split('T')[0],
+        principal: Math.round(principal),
+        interest: Math.round(interest),
+        amount: Math.round(emiAmount),
+        balance: Math.round(balance),
+        bucket: 0,
+        overdueCharges: 0,
+        status: 'Due'
+      });
+
+      date.setMonth(date.getMonth() + 1);
+    }
+
+    return schedule;
+  };
+
+  // Function to update buckets based on overdue status
+  const updateBuckets = (schedule) => {
+    let overdueCount = 0;
+    return schedule.map(emi => {
+      if (emi.status === 'Overdue') overdueCount++;
+      return { ...emi, bucket: overdueCount };
+    });
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setCustomer(prev => ({ ...prev, [name]: value }));
+  };
+
+  // const handleEmiStatusChange = (index, newStatus) => {
+  //   setCustomer(prev => ({
+  //     ...prev,
+  //     emiSchedule: prev.emiSchedule.map((emi, i) =>
+  //       i === index ? { ...emi, status: newStatus, overdueCharges: newStatus === 'Overdue' ? 650 : 0 } : emi
+  //     )
+  //   }));
+  // };
+
+  const handleEmiStatusChange = (index, newStatus) => {
+    setCustomer(prev => {
+      const updatedEmiSchedule = prev.emiSchedule.map((emi, i) =>
+        i === index ? { ...emi, status: newStatus, overdueCharges: newStatus === 'Overdue' ? 650 : 0 } : emi
+      );
+      const updatedWithBuckets = updateBuckets(updatedEmiSchedule);
+      console.log('Updated EMI Schedule:', updatedWithBuckets); // Log to verify
+      return {
+        ...prev,
+        emiSchedule: updatedWithBuckets
+      };
+    });
+  };
+
+  // Calculate total payable amount
+  const calculateTotalPayable = () => {
+    const overdueEmis = customer.emiSchedule.filter(emi => emi.status === 'Overdue');
+    const overdueCount = overdueEmis.length;
+    const emiAmount = parseFloat(customer.emiAmount) || 0;
+    const overdueCharges = 650;
+    return (overdueCount * emiAmount) + (overdueCount * overdueCharges);
+  };
+  // Handler functions
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    try {
+      // Basic validation      
+      if (!customer.customerId || customer.customerId !== id) {
+        throw new Error('Customer IDs is invalid or missing');
+      }
+      if (!customer.name || !customer.vehicleNumber || !customer.saleType) {
+        throw new Error('Names, Vehicle Number, and Sale Type are required');
+      }
+      console.log('handleupdate customer record:',customer);
+      const response = await fetch(`http://localhost:5000/api/customers/${customer.customerId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(customer)
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to update customer: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Update Response:', data);
+
+      alert('Customer updated successfully');
+
+    } catch (error) {
+      console.error('Error updating customer:', error.message);
+      setError(error.message);
+      alert(`Error updating customer: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  function handleDelete() {
+    if (!window.confirm('Are you sure you want to delete this customer?')) return;
+    fetch(`http://localhost:5000/api/customers/${customer.customerId}`, {
+      method: 'DELETE'
+    })
+      .then(response => {
+        if (response.ok) {
+          alert('Customer deleted successfully');
+          navigate('/customers');
+        } else {
+          alert('Failed to delete customer');
+        }
+      })
+      .catch(error => {
+        console.error('Error deleting customer:', error);
+        alert('Error deleting customer');
+      });
+  };
+
+  function handlePrint() {
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
+    if (!printWindow) {
+      alert('Pop-up blocked. Please allow pop-ups for this website to print.');
+      return;
+    }
+    const letterHTML = generateLetterHTML(customer, company);
+    printWindow.document.write(letterHTML);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    setTimeout(() => {
+      printWindow.close();
+    }, 1000);
   };
 
   // Helper function to determine which fields to show based on sale type
@@ -177,7 +384,7 @@ const CustomerDetail = () => {
           </button>
         </header>
         <div className="no-data-container">
-          <p>No customer data available.</p>
+          <p>No customer data available. {customer.customerId}</p>
           <button className="btn btn-primary" onClick={() => navigate(backConfig.backButtonRoute)}>
             {backConfig.backButtonText}
           </button>
@@ -257,12 +464,52 @@ const CustomerDetail = () => {
           Ex-showroom Price:
           <input type="number" name="exShowroomPrice" value={customer.exShowroomPrice} onChange={handleChange} />
         </label>
+        <label>
+          Battery Serial Name:
+          <input type="text" name="batterySerialName" value={customer.batterySerialName} onChange={handleChange} />
+        </label>
+        <label>
+          Battery Count:
+          <input type="number" name="batteryCount" value={customer.batteryCount} onChange={handleChange} />
+        </label>
+        <label>
+          Color:
+          <input type="text" name="color" value={customer.color} onChange={handleChange} />
+        </label>
+        <label>
+          Tool Kit:
+          <input type="text" name="toolKit" value={customer.toolKit} onChange={handleChange} />
+        </label>
+        <label>
+          Battery Type:
+          <input type="text" name="batteryType" value={customer.batteryType} onChange={handleChange} />
+        </label>
+        <label>
+          Vehicle Charger Type:
+          <input type="text" name="vehicleChargerType" value={customer.vehicleChargerType} onChange={handleChange} />
+        </label>
+        <label>
+          Purchase Date:
+          <input type="date" name="purchaseDate" value={customer.purchaseDate} onChange={handleChange} />
+        </label>
+        <label>
+          Sale Date:
+          <input type="date" name="saleDate" value={customer.saleDate} onChange={handleChange} />
+        </label>
+        <label>
+          Vehicle Status:
+          <input type="text" name="vehicleStatus" value={customer.vehicleStatus} onChange={handleChange} />
+        </label>
 
         {/* Sales Details */}
         <h3>Sales Details</h3>
         <label>
           Sale Type:
           <input type="text" name="saleType" value={customer.saleType} onChange={handleChange} />
+        </label>
+        <label>
+          Shop Number:
+          <input type="text" name="shopNumber" value={customer.shopNumber} onChange={handleChange} />
         </label>
 
         {/* Finance Sale Fields */}
@@ -289,6 +536,10 @@ const CustomerDetail = () => {
               <input type="number" name="tenure" value={customer.tenure} onChange={handleChange} />
             </label>
             <label>
+              Interest Rate (% per annum):
+              <input type="number" name="interestRate" value={customer.interestRate} onChange={handleChange} />
+            </label>
+            <label>
               Sale Date:
               <input type="date" name="saleDate" value={customer.saleDate} onChange={handleChange} />
             </label>
@@ -312,6 +563,62 @@ const CustomerDetail = () => {
           </>
         )}
 
+        {/* EMI Schedule */}
+        {fieldConfig.showFinanceFields && customer.emiSchedule && customer.emiSchedule.length > 0 && (
+          <>
+            <h3>EMI Schedule</h3>
+            <div className="emi-schedule">
+              <table className="customer-table">
+                <thead>
+                  <tr>
+                    <th>EMI No.</th>
+                    <th>Due Date</th>
+                    <th>Principal</th>
+                    <th>Interest</th>
+                    <th>Amount</th>
+                    <th>Balance</th>
+                    <th>Bucket (Overdue EMIs)</th>
+                    <th>Overdue Charges</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {customer.emiSchedule.map((emi, index) => (
+                    <tr key={index}>
+                      <td>{emi.emiNo}</td>
+                      <td>{emi.date}</td>
+                      <td>₹{emi.principal.toLocaleString('en-IN')}</td>
+                      <td>₹{emi.interest.toLocaleString('en-IN')}</td>
+                      <td>₹{emi.amount.toLocaleString('en-IN')}</td>
+                      <td>₹{emi.balance.toLocaleString('en-IN')}</td>
+                      <td>{emi.bucket}</td>
+                      <td>₹{emi.overdueCharges.toLocaleString('en-IN')}</td>
+                      <td>₹{(emi.amount + emi.overdueCharges).toLocaleString('en-IN')}</td>
+                      <td>
+                        <select
+                          value={emi.status ? emi.status : 'Due'}
+                          onChange={(e) => handleEmiStatusChange(index, e.target.value)}>
+                          <option value="Paid">Paid</option>
+                          <option value="Due">Due</option>
+                          <option value="Overdue">Overdue</option>
+                        </select>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td colSpan="4" style={{ textAlign: 'right', fontWeight: 'bold' }}>Total Payable for Overdue EMIs:</td>
+                    <td style={{ fontWeight: 'bold' }}>₹{calculateTotalPayable().toLocaleString('en-IN')}</td>
+                    <td colSpan="4"></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </>
+        )}
+
         {/* Cash Sale Fields */}
         {fieldConfig.showCashFields && (
           <>
@@ -325,7 +632,7 @@ const CustomerDetail = () => {
             </label>
             <label>
               Remaining Amount:
-              <input type="number" value={customer.totalAmount - customer.paidAmount} readOnly />
+              <input type="number" value={String(customer.totalAmount - customer.paidAmount || 0)} readOnly />
             </label>
             <label>
               Sale Date:
@@ -356,60 +663,7 @@ const CustomerDetail = () => {
     </div>
   );
 
-  // Handler functions
-  function handleUpdate() {
-    fetch(`http://localhost:5000/api/customers/${customer.customerId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(customer)
-    })
-      .then(response => {
-        if (response.ok) {
-          alert('Customer updated successfully');
-        } else {
-          alert('Failed to update customer');
-        }
-      })
-      .catch(error => {
-        console.error('Error updating customer:', error);
-        alert('Error updating customer');
-      });
-  }
 
-  function handleDelete() {
-    if (!window.confirm('Are you sure you want to delete this customer?')) return;
-    fetch(`http://localhost:5000/api/customers/${customer.customerId}`, {
-      method: 'DELETE'
-    })
-      .then(response => {
-        if (response.ok) {
-          alert('Customer deleted successfully');
-          navigate('/customers');
-        } else {
-          alert('Failed to delete customer');
-        }
-      })
-      .catch(error => {
-        console.error('Error deleting customer:', error);
-        alert('Error deleting customer');
-      });
-  }
-
-  function handlePrint() {
-    const printWindow = window.open('', '_blank', 'width=800,height=600');
-    if (!printWindow) {
-      alert('Pop-up blocked. Please allow pop-ups for this website to print.');
-      return;
-    }
-    const letterHTML = generateLetterHTML(customer, company);
-    printWindow.document.write(letterHTML);
-    printWindow.document.close();
-    printWindow.focus();
-    printWindow.print();
-    setTimeout(() => {
-      printWindow.close();
-    }, 1000);
-  }
 };
 
 export default CustomerDetail;

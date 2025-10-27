@@ -76,7 +76,79 @@ const Customer = () => {
   }).length;
 
   const handleRowClick = (customer) => {
-    navigate(`/customers/${customer.id}`, { state: { customer, from: 'customers' } });
+    navigate(`/customers/${customer.customerId}`, { state: { customer, from: 'customers' } });
+  };
+
+  const generateReportHTML = (customers) => {
+    const reportDate = new Date().toLocaleDateString();
+    return `
+      <html>
+      <head>
+        <title>Customer Management Report</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; }
+          h1 { text-align: center; }
+          .report-info { text-align: center; margin-bottom: 20px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+          th, td { border: 1px solid #000; padding: 8px; text-align: left; font-size: 12px; }
+          th { background-color: #f0f0f0; font-weight: bold; }
+          @media print {
+            body { margin: 10px; }
+            th, td { padding: 5px; font-size: 10px; }
+          }
+        </style>
+      </head>
+      <body>
+        <h1>Customer Management Report</h1>
+        <div class="report-info">
+          <p>Report Generated on: ${reportDate}</p>
+          <p>Total Records: ${customers.length}</p>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Sl. Number</th>
+              <th>Customer ID</th>
+              <th>Customer Name</th>
+              <th>Parents Name</th>
+              <th>Customer Details</th>
+              <th>Contact Number</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${customers.map((customer, index) => `
+              <tr>
+                <td>${index + 1}</td>
+                <td>${customer.customerId || '-'}</td>
+                <td>${customer.name || '-'}</td>
+                <td>${customer.fatherName || '-'}</td>
+                <td>${customer.address || '-'}</td>
+                <td>${customer.mobileNo || '-'}</td>
+                <td>${customer.loanStatus || 'N/A'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </body>
+      </html>
+    `;
+  };
+
+  const handleGenerateReport = () => {
+    const printWindow = window.open('', '_blank', 'width=1000,height=700');
+    if (!printWindow) {
+      alert('Pop-up blocked. Please allow pop-ups for this website to print.');
+      return;
+    }
+    const reportHTML = generateReportHTML(filteredCustomers);
+    printWindow.document.write(reportHTML);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    setTimeout(() => {
+      printWindow.close();
+    }, 1000);
   };
 
   return (
@@ -125,7 +197,7 @@ const Customer = () => {
           <p>Manage all customer information and loan details</p>
           <div className="customer-actions">
             <button className="btn btn-primary" onClick={() => navigate('/add-sale')}>+ Add New Sale</button>
-            <button className="btn btn-success">📊 Export Data</button>
+            <button className="btn btn-success" onClick={handleGenerateReport}>📊 Generate Report</button>
           </div>
         </div>
 
@@ -168,7 +240,7 @@ const Customer = () => {
               <th>Customer ID</th>
               <th>Customer Name</th>
               <th>Parents Name</th>
-              <th>Customer Details</th>
+              <th>Customer Address</th>
               <th>Contact Number</th>
               <th>Status</th>
             </tr>
@@ -176,13 +248,13 @@ const Customer = () => {
           <tbody>
             {filteredCustomers.length === 0 ? (
               <tr>
-                <td colSpan="9" className="no-data">No customers found.</td>
+                <td colSpan="8" className="no-data">No customers found.</td>
               </tr>
             ) : (
               filteredCustomers.map((customer, index) => (
-                <tr key={customer.id || index} className="clickable-row" onClick={() => handleRowClick(customer)}>
+                <tr key={customer.customerId || index} className="clickable-row" onClick={() => handleRowClick(customer)}>
                   <td>{index + 1}</td>
-                  <td>{customer.id || '-'}</td>
+                  <td>{customer.customerId || '-'}</td>
                   <td>
                     <div>{customer.name}</div>
                   </td>
@@ -193,7 +265,7 @@ const Customer = () => {
                     <div>{customer.address || '-'}</div>
                   </td>
                   <td>
-                    <div>{customer.mobile || '-'}</div>
+                    <div>{customer.mobileNo || '-'}</div>
                   </td>
                   <td>
                     <div className={`status-badge ${customer.loanStatus === 'Active' ? 'status-active' : customer.loanStatus === 'Closed' ? 'status-closed' : ''}`}>

@@ -84,6 +84,92 @@ const SalesFinance = () => {
     navigate(`/customers/${customer.id}`, { state: { customer, from: 'sales-finance' } });
   };
 
+  const generateReportHTML = (customers) => {
+    const reportDate = new Date().toLocaleDateString();
+    return `
+      <html>
+      <head>
+        <title>Sales on Finance Report</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; }
+          h1 { text-align: center; }
+          .report-info { text-align: center; margin-bottom: 20px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+          th, td { border: 1px solid #000; padding: 8px; text-align: left; font-size: 12px; }
+          th { background-color: #f0f0f0; font-weight: bold; }
+          @media print {
+            body { margin: 10px; }
+            th, td { padding: 5px; font-size: 10px; }
+          }
+        </style>
+      </head>
+      <body>
+        <h1>Sales on Finance Report</h1>
+        <div class="report-info">
+          <p>Report Generated on: ${reportDate}</p>
+          <p>Total Records: ${customers.length}</p>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Sl. Number</th>
+              <th>Customer ID</th>
+              <th>Customer Name</th>
+              <th>Phone Number</th>
+              <th>Loan Number</th>
+              <th>Chassis Number</th>
+              <th>Ex-Showroom Price</th>
+              <th>Loan Amount</th>
+              <th>Montly EMI</th>
+              <th>Bucket(No. of Overdues)</th>
+              <th>Overdues Charges</th>
+              <th>Payable Amount</th>
+              <th>Status</th>
+              <th>Next EMI Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${customers.map((customer, index) => `
+              <tr>
+                <td>${index + 1}</td>
+                <td>${customer.customerId ?? customer.id ?? '-'}</td>
+                <td>${customer.name ?? '-'}</td>
+                <td>${customer.mobile ?? customer.phone ?? '-'}</td>
+                <td>${customer.loanNumber ?? customer.loan_no ?? '-'}</td>
+                <td>${customer.chassisNumber ?? customer.chasisNo ?? customer.chasis_no ?? '-'}</td>
+                <td>${customer.exShowroomPrice ?? customer.ex_showroom_price}</td>
+                <td>${customer.loanAmount ?? customer.loan_amount}</td>
+                <td>${customer.monthlyEMI ?? customer.monthly_emi ?? customer.emi}</td>
+                <td>${customer.bucket ?? customer.overdueCount ?? 0}</td>
+                <td>${customer.overdueCharges ?? customer.overdue_charges}</td>
+                <td>${customer.payableAmount ?? customer.payable_amount}</td>
+                <td>${customer.loanStatus ?? customer.status ?? '-'}</td>
+                <td>${customer.nextEmiDate ?? customer.next_emi_date ?? '-'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </body>
+      </html>
+    `;
+  };
+
+  const handleGenerateReport = () => {
+    const printWindow = window.open('', '_blank', 'width=1000,height=700');
+    if (!printWindow) {
+      alert('Pop-up blocked. Please allow pop-ups for this website to print.');
+      return;
+    }
+    const reportHTML = generateReportHTML(filteredCustomers);
+    printWindow.document.write(reportHTML);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    setTimeout(() => {
+      printWindow.close();
+    }, 1000);
+  };
+
   return (
     <div className="customer-container">
       <header className="customer-header">
@@ -164,7 +250,7 @@ const SalesFinance = () => {
           <h2>Manage Sales on Finance</h2>
           <p>Manage all sales on finance</p>
           <div className="customer-actions">
-            <button className="btn btn-success">📊 Generte Report</button>
+            <button className="btn btn-success" onClick={handleGenerateReport}>📊 Generate Report</button>
           </div>
         </div>
 
@@ -239,7 +325,7 @@ const SalesFinance = () => {
                   <td>{customer.bucket ?? customer.overdueCount ?? 0}</td>
                   <td>{customer.overdueCharges ?? customer.overdue_charges}</td>
                   <td>{customer.payableAmount ?? customer.payable_amount}</td>
-                  <td>{customer.loanStatus ?? customer.status ?? '-'}</td>
+                  <td><span className={`status-badge ${customer.loanStatus === 'Active' ? 'status-active' : customer.loanStatus === 'Closed' ? 'status-closed' : customer.loanStatus === 'Overdue' ? 'status-overdue' : ''}`}>{customer.loanStatus ?? customer.status ?? '-'}</span></td>
                   <td>{customer.nextEmiDate ?? customer.next_emi_date ?? '-'}</td>
                 </tr>
               ))

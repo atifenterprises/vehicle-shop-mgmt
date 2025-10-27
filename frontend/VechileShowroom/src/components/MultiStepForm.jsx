@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const MultiStepForm = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
+  const [vehicles, setVehicles] = useState([]);
+  const [selectedVehicleSerial, setSelectedVehicleSerial] = useState('');
   const [formData, setFormData] = useState({
     // Customer
     customerId: '',
@@ -19,28 +21,86 @@ const MultiStepForm = () => {
     make: '',
     model: '',
     chassisNumber: '',
-    batteryNumber: '',
+    batterySerialNumber: '',
     batteryCount: 0,
     regnNumber: '',
     exShowroomPrice: '',
-    // Sales - Cash fields
+    color: '',
+    toolKit: '',
+    batteryType: '',
+    vehicleChargerName: '',
+    purchaseDate: '',
     saleDate: '',
+    vehicleStatus: '',
+    // Sales
+    saleType: '',
+    // Sales - Cash fields
+    shopNumber: '',
     totalAmount: '',
     paidAmount: '',
     remainingAmount: '',
-    lastPaymentDate: '',
+    lastpaymentDate: '',
     // Sales - Finance fields
     loanNumber: '',
     downPayment: '',
     loanAmount: '',
     tenure: '',
     interestRate: '',
-    firstEmiDate: '',
-    emiAmount: '',
+    firstEMIDate: '',
+    EMIAmount: '',
     emiSchedule: []
   });
 
   const steps = ['Customer Details', 'Vehicle Details', 'Sales Details', 'Preview'];
+
+  const fetchVehicles = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/vehicles');
+      if (response.ok) {
+        const allVehicles = await response.json();
+        const inStockVehicles = allVehicles.filter(vehicle => vehicle.vehicleStatus === 'In Stock');
+        setVehicles(inStockVehicles);
+      } else {
+        console.error('Failed to fetch vehicles');
+      }
+    } catch (error) {
+      console.error('Error fetching vehicles:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchVehicles();
+  }, []);
+
+  const handleVehicleSelection = (e) => {
+    setSelectedVehicleSerial(e.target.value);
+  };
+
+  const selectVehicle = () => {
+    const selectedVehicle = vehicles.find(vehicle => vehicle.vehicleNumber === selectedVehicleSerial);
+    if (selectedVehicle) {
+      setFormData(prev => ({
+        ...prev,
+        vehicleNumber: selectedVehicle.vehicleNumber,
+        engineNumber: selectedVehicle.engineNumber,
+        make: selectedVehicle.make,
+        model: selectedVehicle.model,
+        chassisNumber: selectedVehicle.chassisNumber,
+        batterySerialNumber: selectedVehicle.batterySerialNumber,
+        batteryCount: selectedVehicle.batteryCount,
+        regnNumber: selectedVehicle.regnNumber,
+        exShowroomPrice: selectedVehicle.exShowroomPrice,
+        color: selectedVehicle.color || '',
+        toolKit: selectedVehicle.toolKit || '',
+        batteryType: selectedVehicle.batteryType || '',
+        vehicleChargerName: selectedVehicle.vehicleChargerName || '',
+        purchaseDate: selectedVehicle.purchaseDate || '',
+        saleDate: selectedVehicle.saleDate || '',
+        vehicleStatus: selectedVehicle.vehicleStatus || ''
+      }));
+      setSelectedVehicleSerial('');
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -63,13 +123,13 @@ const MultiStepForm = () => {
         setFormData(prev => ({
           ...prev,
           loanAmount: loanAmount.toString(),
-          emiAmount: emi.toFixed(2)
+          EMIAmount: emi.toFixed(2)
         }));
       } else {
         setFormData(prev => ({
           ...prev,
           loanAmount: loanAmount.toString(),
-          emiAmount: ''
+          EMIAmount: ''
         }));
       }
     }
@@ -85,13 +145,27 @@ const MultiStepForm = () => {
 
   const generateEmiSchedule = () => {
     const schedule = [];
-    const emi = parseFloat(formData.emiAmount);
+    const emi = parseFloat(formData.EMIAmount);
     const tenure = parseInt(formData.tenure);
-    let date = new Date(formData.firstEmiDate);
+    let date = new Date(formData.firstEMIDate);
+    let status = 'Due';
+    let emiNo = '';
+    let principal = '';
+    let interest = '';
+    let balance = '';
+    let bucket = '';
+    let overdueCharges = '';
     for (let i = 0; i < tenure; i++) {
       schedule.push({
         date: date.toISOString().split('T')[0],
-        amount: emi
+        amount: emi,
+        status: status,
+        emiNo: i+1,
+        principal: principal,
+        interest: interest,
+        balance: balance,
+        bucket: bucket,
+        overdueCharges: overdueCharges,
       });
       date.setMonth(date.getMonth() + 1);
     }
@@ -174,6 +248,23 @@ const MultiStepForm = () => {
         return (
           <div className="form-step">
             <h3>Vehicle Details</h3>
+            <div className="form-section">
+              <h4>Vehicle Selection</h4>
+              <div className="form-row">
+                <label>Select Vehicle:</label>
+                <select name="selectedVehicleSerial" value={selectedVehicleSerial} onChange={handleVehicleSelection}>
+                  <option value="">Select a vehicle</option>
+                  {vehicles.map(vehicle => (
+                    <option key={vehicle.vehicleNumber} value={vehicle.vehicleNumber}>
+                      {vehicle.vehicleNumber} - {vehicle.model} - ₹{vehicle.exshowroomPrice}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-row">
+                <button type="button" className='btn' onClick={selectVehicle}>Select Vehicle</button>
+              </div>
+            </div>
             <div className="form-row">
               <label>Vehicle Number:</label>
               <input type="text" name="vehicleNumber" value={formData.vehicleNumber} onChange={handleChange} required />
@@ -195,8 +286,8 @@ const MultiStepForm = () => {
               <input type="text" name="chassisNumber" value={formData.chassisNumber} onChange={handleChange} required />
             </div>
             <div className="form-row">
-              <label>Battery Number:</label>
-              <input type="text" name="batteryNumber" value={formData.batteryNumber} onChange={handleChange} required />
+              <label>Battery Serial Number:</label>
+              <input type="text" name="batterySerialNumber" value={formData.batterySerialNumber} onChange={handleChange} required />
             </div>
             <div className="form-row">
               <label>Battery Count:</label>
@@ -209,6 +300,34 @@ const MultiStepForm = () => {
             <div className="form-row">
               <label>Ex-showroom Price:</label>
               <input type="number" name="exShowroomPrice" value={formData.exShowroomPrice} onChange={handleChange} required />
+            </div>
+            <div className="form-row">
+              <label>Color:</label>
+              <input type="text" name="color" value={formData.color} onChange={handleChange} />
+            </div>
+            <div className="form-row">
+              <label>Tool Kit:</label>
+              <input type="text" name="toolKit" value={formData.toolKit} onChange={handleChange} />
+            </div>
+            <div className="form-row">
+              <label>Battery Type:</label>
+              <input type="text" name="batteryType" value={formData.batteryType} onChange={handleChange} />
+            </div>
+            <div className="form-row">
+              <label>Vehicle Charger Name:</label>
+              <input type="text" name="vehicleChargerName" value={formData.vehicleChargerName} onChange={handleChange} />
+            </div>
+            <div className="form-row">
+              <label>Purchase Date:</label>
+              <input type="date" name="purchaseDate" value={formData.purchaseDate} onChange={handleChange} />
+            </div>
+            <div className="form-row">
+              <label>Sale Date:</label>
+              <input type="date" name="saleDate" value={formData.saleDate} onChange={handleChange} />
+            </div>
+            <div className="form-row">
+              <label>Vehicle Status:</label>
+              <input type="text" name="vehicleStatus" value={formData.vehicleStatus} onChange={handleChange} />
             </div>
           </div>
         );
@@ -248,6 +367,17 @@ const MultiStepForm = () => {
             {formData.saleType === 'Cash' && (
               <>
                 <div className="form-row">
+                  <label>Shop Number:</label>
+                  <select name="shopNumber" value={formData.shopNumber} onChange={handleChange} required>
+                    <option value="">Select Shop Number</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                  </select>
+                </div>
+                <div className="form-row">
                   <label>Sale Date:</label>
                   <input type="date" name="saleDate" value={formData.saleDate} onChange={handleChange} required />
                 </div>
@@ -265,7 +395,7 @@ const MultiStepForm = () => {
                 </div>
                 <div className="form-row">
                   <label>Last Payment Date:</label>
-                  <input type="date" name="lastPaymentDate" value={formData.lastPaymentDate} onChange={handleChange} required />
+                  <input type="date" name="lastpaymentDate" value={formData.lastpaymentDate} onChange={handleChange} required />
                 </div>
               </>
             )}
@@ -303,11 +433,11 @@ const MultiStepForm = () => {
                 </div>
                 <div className="form-row">
                   <label>First EMI Date:</label>
-                  <input type="date" name="firstEmiDate" value={formData.firstEmiDate} onChange={handleChange} required />
+                  <input type="date" name="firstEMIDate" value={formData.firstEMIDate} onChange={handleChange} required />
                 </div>
                 <div className="form-row">
                   <label>EMI Amount:</label>
-                  <input type="number" name="emiAmount" value={formData.emiAmount} readOnly />
+                  <input type="number" name="EMIAmount" value={formData.EMIAmount} readOnly />
                 </div>
               </>
             )}
@@ -334,10 +464,17 @@ const MultiStepForm = () => {
               <p><strong>Make:</strong> {formData.make}</p>
               <p><strong>Model:</strong> {formData.model}</p>
               <p><strong>Chassis Number:</strong> {formData.chassisNumber}</p>
-              <p><strong>Battery Number:</strong> {formData.batteryNumber}</p>
+              <p><strong>Battery Serial Number:</strong> {formData.batterySerialNumber}</p>
               <p><strong>Battery Count:</strong> {formData.batteryCount}</p>
               <p><strong>Regn Number:</strong> {formData.regnNumber}</p>
               <p><strong>Ex-showroom Price:</strong> {formData.exShowroomPrice}</p>
+              <p><strong>Color:</strong> {formData.color}</p>
+              <p><strong>Tool Kit:</strong> {formData.toolKit}</p>
+              <p><strong>Battery Type:</strong> {formData.batteryType}</p>
+              <p><strong>Vehicle Charger Name:</strong> {formData.vehicleChargerName}</p>
+              <p><strong>Purchase Date:</strong> {formData.purchaseDate}</p>
+              <p><strong>Sale Date:</strong> {formData.saleDate}</p>
+              <p><strong>Vehicle Status:</strong> {formData.vehicleStatus}</p>
             </div>
             <div className="preview-section">
               <h4>Sales Details</h4>
@@ -346,11 +483,12 @@ const MultiStepForm = () => {
               {/* Cash Sale Preview */}
               {formData.saleType === 'Cash' && (
                 <>
+                  <p><strong>Shop Number:</strong> {formData.shopNumber}</p>
                   <p><strong>Sale Date:</strong> {formData.saleDate}</p>
                   <p><strong>Total Amount:</strong> {formData.totalAmount}</p>
                   <p><strong>Paid Amount:</strong> {formData.paidAmount}</p>
                   <p><strong>Remaining Amount:</strong> {formData.remainingAmount}</p>
-                  <p><strong>Last Payment Date:</strong> {formData.lastPaymentDate}</p>
+                  <p><strong>Last Payment Date:</strong> {formData.lastpaymentDate}</p>
                 </>
               )}
 
@@ -364,14 +502,50 @@ const MultiStepForm = () => {
                   <p><strong>Tenure:</strong> {formData.tenure}</p>
                   <p><strong>Interest Rate:</strong> {formData.interestRate}</p>
                   <p><strong>Sale Date:</strong> {formData.saleDate}</p>
-                  <p><strong>First EMI Date:</strong> {formData.firstEmiDate}</p>
-                  <p><strong>EMI Amount:</strong> {formData.emiAmount}</p>
+                  <p><strong>First EMI Date:</strong> {formData.firstEMIDate}</p>
+                  <p><strong>EMI Amount:</strong> {formData.EMIAmount}</p>
                   <h5>EMI Schedule</h5>
-                  <ul>
+                  {/* <ul>
                     {formData.emiSchedule.map((emi, index) => (
-                      <li key={index}>{emi.date}: {emi.amount}</li>
+                      <li key={index}>
+                        <table className="emi-table">
+                          <tr className="emi-row">
+                            <td className="emi-cell"><strong>EMI Date :</strong> {emi.date} </td>
+                            <td className="emi-cell"><strong>EMI Amount :</strong> ₹{emi.amount}</td>
+                            <td className="emi-cell"><strong>Payment Status :</strong><span style={{ color: "orange" }}>{emi.status}</span></td>
+                          </tr>
+                        </table>
+                      </li>
                     ))}
-                  </ul>
+                  </ul> */}
+                  <table className="emi-table">
+                    <thead>
+                      <tr className="emi-header-row">
+                        <th className="emi-header-cell">EMI #</th>
+                        <th className="emi-header-cell">EMI Date</th>
+                        <th className="emi-header-cell">EMI Amount(₹)</th>
+                        <th className="emi-header-cell">Payment Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {formData.emiSchedule.map((emi, index) => (
+                        <tr key={index} className="emi-row">
+                          <td className="emi-cell">
+                            {emi.emiNo}
+                          </td>
+                          <td className="emi-cell">
+                            {emi.date}
+                          </td>
+                          <td className="emi-cell">
+                            ₹{emi.amount}
+                          </td>
+                          <td className="emi-cell">
+                            <strong style={{ color: "orange" }}>{emi.status}</strong>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </>
               )}
             </div>
