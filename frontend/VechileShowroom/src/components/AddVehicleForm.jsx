@@ -17,7 +17,7 @@ const AddVehicleForm = () => {
     batteryCount: '',
     batteryType: '',
     vehicleChargerName: '',
-    exshowroomPrice: '',
+    exShowroomPrice: '',
     saleDate: '',
     vehicleStatus: 'In Stock',
   });
@@ -48,10 +48,10 @@ const AddVehicleForm = () => {
     if (!formData.model) newErrors.model = 'Model is required';
     if (!formData.color) newErrors.color = 'Color is required';
     if (!formData.regnNumber) newErrors.regnNumber = 'Registration number is required';
-    if (!formData.exshowroomPrice) newErrors.exshowroomPrice = 'Ex-showroom price is required';
+    if (!formData.exShowroomPrice) newErrors.exShowroomPrice = 'Ex-showroom price is required';
     // Numeric field validation
-    if (formData.exshowroomPrice && isNaN(formData.exshowroomPrice)) {
-      newErrors.exshowroomPrice = 'Ex-showroom price must be a number';
+    if (formData.exShowroomPrice && isNaN(formData.exShowroomPrice)) {
+      newErrors.exShowroomPrice = 'Ex-showroom price must be a number';
     }
     if (formData.make && (isNaN(formData.make) || formData.make < 1900 || formData.make > new Date().getFullYear())) {
       newErrors.make = 'Please enter a valid year';
@@ -83,7 +83,7 @@ const AddVehicleForm = () => {
         batteryCount: formData.batteryCount ? parseInt(formData.batteryCount, 10) : null,
         batteryType: formData.batteryType,
         vehicleChargerName: formData.vehicleChargerName,
-        exshowroomPrice: formData.exshowroomPrice ? parseFloat(formData.exshowroomPrice) : null,
+        exShowroomPrice: formData.exShowroomPrice ? parseFloat(formData.exShowroomPrice) : null,
         saleDate: formData.saleDate || null,
         vehicleStatus: formData.vehicleStatus,
       };
@@ -294,15 +294,15 @@ const AddVehicleForm = () => {
             <label>Ex-Showroom Price:</label>
             <input
               type="number"
-              name="exshowroomPrice"
-              value={formData.exshowroomPrice}
+              name="exShowroomPrice"
+              value={formData.exShowroomPrice}
               onChange={handleChange}
               placeholder="Enter ex-showroom price"
               step="0.01"
               min="0"
               required
             />
-            {errors.exshowroomPrice && <span className="error">{errors.exshowroomPrice}</span>}
+            {errors.exShowroomPrice && <span className="error">{errors.exShowroomPrice}</span>}
           </div>
           <div className="form-row">
             <label>Sale Date:</label>

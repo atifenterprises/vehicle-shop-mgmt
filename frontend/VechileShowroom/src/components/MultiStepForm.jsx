@@ -147,25 +147,26 @@ const MultiStepForm = () => {
     const schedule = [];
     const emi = parseFloat(formData.EMIAmount);
     const tenure = parseInt(formData.tenure);
+    const loanAmount = parseFloat(formData.loanAmount);
+    const monthlyRate = parseFloat(formData.interestRate) / 12 / 100;
+    let balance = loanAmount;
     let date = new Date(formData.firstEMIDate);
-    let status = 'Due';
-    let emiNo = '';
-    let principal = '';
-    let interest = '';
-    let balance = '';
-    let bucket = '';
-    let overdueCharges = '';
+
     for (let i = 0; i < tenure; i++) {
+      const interest = balance * monthlyRate;
+      const principal = emi - interest;
+      balance -= principal;
+
       schedule.push({
         date: date.toISOString().split('T')[0],
         amount: emi,
-        status: status,
-        emiNo: i+1,
-        principal: principal,
-        interest: interest,
-        balance: balance,
-        bucket: bucket,
-        overdueCharges: overdueCharges,
+        status: 'Due',
+        emiNo: i + 1,
+        principal: Math.round(principal),
+        interest: Math.round(interest),
+        balance: Math.round(balance),
+        bucket: 0,
+        overdueCharges: 0,
       });
       date.setMonth(date.getMonth() + 1);
     }
@@ -256,7 +257,7 @@ const MultiStepForm = () => {
                   <option value="">Select a vehicle</option>
                   {vehicles.map(vehicle => (
                     <option key={vehicle.vehicleNumber} value={vehicle.vehicleNumber}>
-                      {vehicle.vehicleNumber} - {vehicle.model} - ₹{vehicle.exshowroomPrice}
+                      {vehicle.vehicleNumber} - {vehicle.model} - ₹{vehicle.exShowroomPrice}
                     </option>
                   ))}
                 </select>

@@ -26,7 +26,7 @@ const mapVehicleToCamelCase = (vehicle) => {
     batterySerialNumber: vehicle.batterySerialNumber,
     batteryCount: vehicle.batteryCount,
     regnNumber: vehicle.regnNumber,
-    exShowroomPrice: vehicle.exshowroomPrice,
+    exShowroomPrice: vehicle.exShowroomPrice,
     purchaseDate: vehicle.purchaseDate,
     color: vehicle.color,
     toolKit: vehicle.toolKit,
@@ -46,7 +46,7 @@ const mapVehicleToDatabase = (vehicle) => ({
   batterySerialNumber: vehicle.batterySerialNumber,
   batteryCount: vehicle.batteryCount,
   regnNumber: vehicle.regnNumber,
-  exshowroomPrice: vehicle.exshowroomPrice,
+  exShowroomPrice: vehicle.exShowroomPrice,
   purchaseDate: vehicle.purchaseDate,
   color: vehicle.color,
   toolKit: vehicle.toolKit,
@@ -58,21 +58,25 @@ const mapVehicleToDatabase = (vehicle) => ({
 
 const mapBatteryToDatabase = (battery) => {
   return {
-    serial_number: battery.serialNumber,
-    make: battery.make,
-    model: battery.model,
+    serialNumber: battery.serialNumber,
+    batteryName: battery.batteryName,
+    batteryType: battery.batteryType,
     price: battery.price,
+    warrantyMonths: battery.warrantyMonths,
     status: battery.status,
+    purchaseDate: battery.purchaseDate,
   };
 };
 
 const mapBatteryToCamelCase = (battery) => {
   return {
-    serialNumber: battery.serial_number,
-    make: battery.make,
-    model: battery.model,
+    serialNumber: battery.serialNumber,
+    batteryName: battery.batteryName,
+    batteryType: battery.batteryType,
     price: battery.price,
+    warrantyMonths: battery.warrantyMonths,
     status: battery.status,
+    purchaseDate: battery.purchaseDate,
   };
 };
 
@@ -104,8 +108,9 @@ const validateVehicleData = (data, isUpdate = false) => {
   }
 
   // Validate exShowroomPrice: must be number >= 0 if provided
-  if (data.exShowroomPrice !== undefined) {
-    if (typeof data.exShowroomPrice !== 'number' || data.exShowroomPrice < 0) {
+  if (data.exShowroomPrice !== undefined && data.exShowroomPrice !== null && data.exShowroomPrice !== '') {
+    const price = parseFloat(data.exShowroomPrice);
+    if (isNaN(price) || price < 0) {
       errors.push('exShowroomPrice must be a non-negative number');
     }
   }
@@ -279,8 +284,8 @@ app.get("/api/dashboard/metrics", async (req, res) => {
     const activeLoansCount = activeLoans.length;
     const overduePaymentsCount = overduePayments.length;
 
-    // Total Collection: sum of emiAmount for active loans
-    const totalCollection = activeLoans.reduce((sum, c) => sum + parseFloat(c.emiAmount.replace(/,/g, '')), 0);
+    // Total Collection: sum of EMIAmount for active loans
+    const totalCollection = activeLoans.reduce((sum, c) => sum + parseFloat(c.EMIAmount.replace(/,/g, '')), 0);
     const totalCollectionFormatted = `₹${totalCollection.toLocaleString('en-IN')}`;
 
     // New metrics
@@ -314,11 +319,27 @@ app.get("/api/dashboard/metrics", async (req, res) => {
   }
 });
 
-// API endpoint for monthly collection trend (sample data with battery sales)
+// API endpoint for monthly collection trend
 app.get("/api/dashboard/monthly-collection", async (req, res) => {
   try {
+    const { data: customersData, error: customersError } = await supabase.from('customers').select('*');
+    if (customersError) throw customersError;
+
     const { data: batterySalesData, error: batterySalesError } = await supabase.from('battery_sales').select('*');
     if (batterySalesError) throw batterySalesError;
+
+    // Aggregate EMI collections by month from finance customers
+    const emiMonthly = {};
+    customersData.filter(c => c.saleType === 'finance').forEach(customer => {
+      if (customer.emiSchedule && Array.isArray(customer.emiSchedule)) {
+        customer.emiSchedule.forEach(emi => {
+          if (emi.status === 'Paid') {
+            const month = new Date(emi.date).getMonth();
+            emiMonthly[month] = (emiMonthly[month] || 0) + parseFloat(emi.amount);
+          }
+        });
+      }
+    });
 
     // Aggregate battery sales by month
     const batteryMonthly = {};
@@ -328,26 +349,48 @@ app.get("/api/dashboard/monthly-collection", async (req, res) => {
     });
 
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const collection = [20000, 2000, 25000, 2000, 2700, 300, 32000, 3000, 4533, 24541, 7855, 12345];
 
-    // Add battery sales to collection
-    const updatedCollection = collection.map((val, idx) => val + (batteryMonthly[idx] || 0));
+    // Combine EMI and battery sales collections
+    const collection = months.map((_, idx) => (emiMonthly[idx] || 0) + (batteryMonthly[idx] || 0));
 
     res.json({
       months,
-      collection: updatedCollection
+      collection
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// API endpoint for loan status distribution (sample data)
-app.get("/api/dashboard/loan-status", (req, res) => {
-  res.json({
-    statuses: ["Active", "Closed", "Overdue"],
-    counts: [18, 5, 3]
-  });
+// API endpoint for loan status distribution
+app.get("/api/dashboard/loan-status", async (req, res) => {
+  try {
+    const { data: customersData, error: customersError } = await supabase.from('customers').select('*');
+    if (customersError) throw customersError;
+
+    const financeCustomers = customersData.filter(c => c.saleType === 'finance');
+
+    let activeCount = 0;
+    let closedCount = 0;
+    let overdueCount = 0;
+
+    financeCustomers.forEach(customer => {
+      if (customer.loanStatus === 'Active') {
+        activeCount++;
+      } else if (customer.loanStatus === 'Overdue') {
+        overdueCount++;
+      } else {
+        closedCount++;
+      }
+    });
+
+    res.json({
+      statuses: ["Active", "Closed", "Overdue"],
+      counts: [activeCount, closedCount, overdueCount]
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // API endpoint to handle form submission
@@ -403,12 +446,21 @@ app.post('/api/sales', async (req, res) => {
     // Add sale-type-specific fields
     if (formData.saleType === 'Cash') {
       saleData.totalAmount = parseFloat(formData.totalAmount);
+      saleData.status = 'Completed';
       saleData.shopNumber = formData.shopNumber,
         saleData.paidAmount = parseFloat(formData.paidAmount);
       saleData.remainingAmount = parseFloat(formData.remainingAmount);
       saleData.lastpaymentDate = formData.lastpaymentDate;
+      saleData.loanNumber = null;
+      saleData.downPayment = 0;
+      saleData.loanAmount = 0;
+      saleData.tenure = 0;
+      saleData.interestRate = 0;
+      saleData.firstEMIDate = null;
+      saleData.EMIAmount = 0;
+      saleData.emiSchedule = null;
     } else if (formData.saleType === 'Finance') {
-      saleData.totalAmount = parseFloat(formData.downPayment) + parseFloat(formData.loanAmount);
+      saleData.totalAmount = parseFloat(formData.totalAmount);
       saleData.status = 'Active'; // Set status to Active for Finance sales
       saleData.loanNumber = formData.loanNumber;
       saleData.downPayment = parseFloat(formData.downPayment);
@@ -507,7 +559,7 @@ app.get("/api/dashboard/recent-payments", async (req, res) => {
       payments.push({
         customer: c.name,
         loanNo: c.loanNumber,
-        amount: c.emiAmount,
+        amount: c.EMIAmount,
         date: c.saleDate,
         status: 'Paid'
       });
@@ -547,7 +599,7 @@ app.get("/api/dashboard/due-payments", async (req, res) => {
       dues.push({
         customer: c.name,
         loanNo: c.loanNumber,
-        amount: c.emiAmount,
+        amount: c.EMIAmount,
         dueDate: c.nextEmiDate
       });
     });
@@ -746,7 +798,7 @@ app.put('/api/customers/:customerId', async (req, res) => {
     loanAmount: parseFloat(formData.loanAmount) || 0,
     tenure: parseInt(formData.tenure) || 0,
     firstEMIDate: formData.firstEmiDate || null,
-    EMIAmount : parseFloat(formData.emiAmount) || 0,
+    EMIAmount : parseFloat(formData.EMIAmount) || 0,
     emiSchedule : (formData.emiSchedule && Array.isArray(formData.emiSchedule)) ? formData.emiSchedule.map(emi => ({
       emiNo: parseInt(emi.emiNo) || 0,
       date: emi.date || '',
@@ -786,39 +838,72 @@ app.put('/api/customers/:customerId', async (req, res) => {
   }
 
   try {
-    // Start a Supabase transaction           
-    const { data, error } = await supabase.rpc('update_customer_vehicle_sale', {
-      p_customer_id: customerId,
-      p_date: reqObj.date,
-      p_name: reqObj.name,
-      p_father_name: reqObj.fatherName,
-      p_mobile_no: reqObj.mobileNo,
-      p_ckyc_no: reqObj.ckycNo,
-      p_address: reqObj.address,
-      p_vehicle_number: reqObj.vehicleNumber,
-      p_engine_number: reqObj.engineNumber,
-      p_make: reqObj.make,
-      p_model: reqObj.model,
-      p_chassis_number: reqObj.chassisNumber,
-      p_regn_number: reqObj.regnNumber,
-      p_exshowroom_price: parseFloat(reqObj.exShowroomPrice) || 0,
-      p_battery_serial_number: reqObj.batterySerialNumber,
-      p_battery_count: parseInt(reqObj.batteryCount) || 1,
-      p_sale_type: reqObj.saleType,
-      p_shop_number: parseInt(reqObj.shopNumber) || null,
-      p_loan_number: reqObj.loanNumber || null,
-      p_sanction_amount: parseFloat(reqObj.sanctionAmount) || null,
-      p_total_amount: parseFloat(reqObj.totalAmount) || 0,
-      p_paid_amount: parseFloat(reqObj.paidAmount) || 0,
-      p_down_payment: parseFloat(reqObj.downPayment) || 0,
-      p_loan_amount: parseFloat(reqObj.loanAmount) || 0,
-      p_tenure: parseInt(reqObj.tenure) || null,
-      p_sale_date: reqObj.saleDate,
-      p_first_emi_date: reqObj.firstEMIDate || null,
-      p_emi_amount: parseFloat(reqObj.EMIAmount) || 0,
-      p_emi_schedule: reqObj.emiSchedule || null,
-      p_last_payment_date: reqObj.promisedPaymentDate || null
-    });
+    let rpcFunctionName;
+    let rpcParams;
+
+    if (reqObj.saleType === 'Cash') {
+      rpcFunctionName = 'update_customer_vehicle_sale_cash';
+      rpcParams = {
+        p_customer_id: customerId,
+        p_date: reqObj.date,
+        p_name: reqObj.name,
+        p_father_name: reqObj.fatherName,
+        p_mobile_no: reqObj.mobileNo,
+        p_ckyc_no: reqObj.ckycNo,
+        p_address: reqObj.address,
+        p_vehicle_number: reqObj.vehicleNumber,
+        p_engine_number: reqObj.engineNumber,
+        p_make: reqObj.make,
+        p_model: reqObj.model,
+        p_chassis_number: reqObj.chassisNumber,
+        p_regn_number: reqObj.regnNumber,
+        p_exshowroom_price: parseFloat(reqObj.exShowroomPrice) || 0,
+        p_battery_serial_number: reqObj.batterySerialNumber,
+        p_battery_count: parseInt(reqObj.batteryCount) || 1,
+        p_sale_type: reqObj.saleType,
+        p_shop_number: parseInt(reqObj.shopNumber) || null,
+        p_total_amount: parseFloat(reqObj.totalAmount) || 0,
+        p_paid_amount: parseFloat(reqObj.paidAmount) || 0,
+        p_sale_date: reqObj.saleDate,
+        p_last_payment_date: reqObj.lastpaymentDate || null
+      };
+    } else if (reqObj.saleType === 'Finance') {
+      rpcFunctionName = 'update_customer_vehicle_sale_finance';
+      rpcParams = {
+        p_customer_id: customerId,
+        p_date: reqObj.date,
+        p_name: reqObj.name,
+        p_father_name: reqObj.fatherName,
+        p_mobile_no: reqObj.mobileNo,
+        p_ckyc_no: reqObj.ckycNo,
+        p_address: reqObj.address,
+        p_vehicle_number: reqObj.vehicleNumber,
+        p_engine_number: reqObj.engineNumber,
+        p_make: reqObj.make,
+        p_model: reqObj.model,
+        p_chassis_number: reqObj.chassisNumber,
+        p_regn_number: reqObj.regnNumber,
+        p_exshowroom_price: parseFloat(reqObj.exShowroomPrice) || 0,
+        p_battery_serial_number: reqObj.batterySerialNumber,
+        p_battery_count: parseInt(reqObj.batteryCount) || 1,
+        p_sale_type: reqObj.saleType,
+        p_loan_number: reqObj.loanNumber || null,
+        p_total_amount: parseFloat(reqObj.totalAmount) || 0,
+        p_paid_amount: parseFloat(reqObj.paidAmount) || 0,
+        p_down_payment: parseFloat(reqObj.downPayment) || 0,
+        p_loan_amount: parseFloat(reqObj.loanAmount) || 0,
+        p_tenure: parseInt(reqObj.tenure) || null,
+        p_sale_date: reqObj.saleDate,
+        p_first_emi_date: reqObj.firstEMIDate || null,
+        p_emi_amount: parseFloat(reqObj.EMIAmount) || 0,
+        p_emi_schedule: reqObj.emiSchedule || null
+      };
+    } else {
+      return res.status(400).json({ error: 'Invalid sale type. Must be Cash or Finance.' });
+    }
+
+    // Call the appropriate Supabase RPC function
+    const { data, error } = await supabase.rpc(rpcFunctionName, rpcParams);
 
     if (error) {
       console.error('Transaction error:', error);
@@ -888,7 +973,22 @@ app.get("/api/vehicles/:vehicleNumber", async (req, res) => {
     if (data.length === 0) {
       return res.status(404).json({ error: 'Vehicle not found' });
     }
-    const mappedData = mapVehicleToCamelCase(data[0]);
+    let vehicle = data[0];
+
+    // Fetch exShowroomPrice from master table if not present
+    if (!vehicle.exShowroomPrice) {
+      const { data: masterData, error: masterError } = await supabase
+        .from('vehicle_models')
+        .select('exShowroomPrice')
+        .eq('make', vehicle.make)
+        .eq('model', vehicle.model)
+        .single();
+      if (!masterError && masterData) {
+        vehicle.exShowroomPrice = masterData.exShowroomPrice;
+      }
+    }
+
+    const mappedData = mapVehicleToCamelCase(vehicle);
     res.json(mappedData);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -898,12 +998,33 @@ app.get("/api/vehicles/:vehicleNumber", async (req, res) => {
 // PUT update vehicle by vehicleNumber
 app.put("/api/vehicles/:vehicleNumber", async (req, res) => {
   try {
-    const { data, error } = await supabase.from('vehicles').update(req.body).eq('vehicleNumber', req.params.vehicleNumber).select();
+    // Fetch existing vehicle data
+    const { data: existingVehicle, error: fetchError } = await supabase.from('vehicles').select('*').eq('vehicleNumber', req.params.vehicleNumber).single();
+    if (fetchError) throw fetchError;
+    if (!existingVehicle) {
+      return res.status(404).json({ error: 'Vehicle not found' });
+    }
+
+    // Merge provided data with existing, keeping existing exShowroomPrice if not provided or empty
+    const updatedData = { ...req.body };
+    if (updatedData.exShowroomPrice === undefined || updatedData.exShowroomPrice === null || updatedData.exShowroomPrice === '') {
+      updatedData.exShowroomPrice = existingVehicle.exShowroomPrice;
+    }
+
+    // Validate input data
+    const validationErrors = validateVehicleData(updatedData, true);
+    if (validationErrors.length > 0) {
+      return res.status(400).json({ error: 'Validation failed', details: validationErrors });
+    }
+
+    const vehicleData = mapVehicleToDatabase(updatedData);
+    const { data, error } = await supabase.from('vehicles').update(vehicleData).eq('vehicleNumber', req.params.vehicleNumber).select();
     if (error) throw error;
     if (data.length === 0) {
       return res.status(404).json({ error: 'Vehicle not found' });
     }
-    res.json(data[0]);
+    const mappedData = mapVehicleToCamelCase(data[0]);
+    res.json(mappedData);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -912,6 +1033,18 @@ app.put("/api/vehicles/:vehicleNumber", async (req, res) => {
 // DELETE vehicle by vehicleNumber
 app.delete("/api/vehicles/:vehicleNumber", async (req, res) => {
   try {
+    // Check if there are any sales records associated with this vehicle
+    const { count, error: salesError } = await supabase
+      .from('sales')
+      .select('customerId', { count: 'exact', head: true })
+      .eq('vehicleId', req.params.vehicleNumber);
+
+    if (salesError) throw salesError;
+
+    if (count > 0) {
+      return res.status(400).json({ error: 'Cannot delete vehicle with associated sales records' });
+    }
+
     const { data, error } = await supabase.from('vehicles').delete().eq('vehicleNumber', req.params.vehicleNumber).select();
     if (error) throw error;
     if (data.length === 0) {
@@ -1189,4 +1322,3 @@ app.delete("/api/battery-sales/:id", async (req, res) => {
 app.listen(5000, () => {
   console.log("Server started on http://localhost:5000");
 });
-

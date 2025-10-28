@@ -8,9 +8,13 @@ import MultiStepForm from './components/MultiStepForm.jsx';
 import AddVehicleForm from './components/AddVehicleForm.jsx';
 import Vehicle from './components/Vehicle.jsx';
 import VehicleDetails from './components/VehicleDetails.jsx';
+import Battery from './components/Battery.jsx';
+import BatterySaleForm from './components/BatterySaleForm.jsx';
+import BatteryInvoice from './components/BatteryInvoice.jsx';
 import CalculateEMI from './components/CalculateEMI.jsx';
 import Cashflow from './components/Cashflow.jsx';
 import CustomerEnquiry from './components/CustomerEnquiry.jsx';
+import LoadingProgress from './components/LoadingProgress.jsx';
 import Sidebar from './Sidebar.jsx';
 import './index.css';
 import LoginForm from './Auth/LoginForm.jsx';
@@ -25,7 +29,12 @@ const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
   console.log('isAuthenticated1:', isAuthenticated);
   if (loading) {
-    return <div>Loading...</div>; // Show loading state while checking session
+    return (
+      <>
+        <LoadingProgress />
+        <div>Loading...</div>
+      </>
+    ); // Show loading progress bar and loading state while checking session
   }
   console.log('isAuthenticated:', isAuthenticated);
   return isAuthenticated ? children : <Navigate to="/login" replace />;
@@ -57,17 +66,11 @@ function App() {
         <Route path="/add-vehicle" element={<ProtectedRoute><AddVehicleForm /></ProtectedRoute>} />
         <Route path="/vehicles" element={<ProtectedRoute><Vehicle /></ProtectedRoute>} />
         <Route path="/vehicles/:id" element={<ProtectedRoute><VehicleDetails /></ProtectedRoute>} />
+        <Route path="/batteries" element={<ProtectedRoute><Battery /></ProtectedRoute>} />
+        <Route path="/battery-sale" element={<ProtectedRoute><BatterySaleForm /></ProtectedRoute>} />
+        <Route path="/battery-invoice/:id" element={<ProtectedRoute><BatteryInvoice /></ProtectedRoute>} />
         <Route path="/cashflows" element={<ProtectedRoute><Cashflow /></ProtectedRoute>} />
         <Route path="/customerEnquiry" element={<ProtectedRoute><CustomerEnquiry /></ProtectedRoute>} />
-
-        {/* <Route path="/customers" element={<Customer />} />
-        <Route path="/customers/:id" element={<CustomerDetail />} />
-        <Route path="/add-sale" element={<MultiStepForm />} />
-        <Route path="/add-vehicle" element={<AddVehicleForm />} />
-        <Route path="/vehicles" element={<Vehicle />} />
-        <Route path="/vehicles/:id" element={<VehicleDetails />} />
-        <Route path="/cashflows" element={<Cashflow />} />
-        <Route path="/customerEnquiry" element={<CustomerEnquiry />} /> */}
       </Routes>
       {isEMIDialogOpen && (
         <div className="modal-overlay" onClick={closeEMIDialog}>

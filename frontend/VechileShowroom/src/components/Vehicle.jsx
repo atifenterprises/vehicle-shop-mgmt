@@ -147,7 +147,7 @@ const Vehicle = () => {
                 <td>${vehicle.model || '-'}</td>
                 <td>${vehicle.color || '-'}</td>
                 <td>${vehicle.chassisNumber || '-'}</td>
-                <td>₹${vehicle.exshowroomPrice ? vehicle.exshowroomPrice.toLocaleString() : '0'}</td>
+                <td>₹${vehicle.exShowroomPrice ? vehicle.exShowroomPrice.toLocaleString() : '0'}</td>
                 <td>${vehicle.vehicleStatus || '-'}</td>
                 <td>${vehicle.saleDate ? new Date(vehicle.saleDate).toLocaleDateString() : '-'}</td>
               </tr>
@@ -308,7 +308,7 @@ const Vehicle = () => {
                     <td>{vehicle.batteryCount || '-'}</td>
                     <td>{vehicle.batteryType || '-'}</td>
                     <td>{vehicle.vehicleChargerName || '-'}</td>
-                    <td>₹{vehicle.exshowroomPrice ? parseFloat(vehicle.exshowroomPrice).toLocaleString() : '0'}</td>
+                    <td>₹{vehicle.exShowroomPrice ? parseFloat(vehicle.exShowroomPrice).toLocaleString() : '0'}</td>
                     <td>{vehicle.vehicleStatus || '-'}</td>
                     <td>{vehicle.saleDate ? new Date(vehicle.saleDate).toLocaleDateString() : '-'}</td>
                   </tr>

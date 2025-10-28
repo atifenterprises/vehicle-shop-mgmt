@@ -69,10 +69,10 @@ const BatterySaleForm = () => {
     }
   };
 
-  const removeBattery = (id) => {
+  const removeBattery = (serialNumber) => {
     setFormData(prev => {
-      const battery = prev.batteries.find(b => b.id === id);
-      const newBatteries = prev.batteries.filter(b => b.id !== id);
+      const battery = prev.batteries.find(b => b.serialNumber === serialNumber);
+      const newBatteries = prev.batteries.filter(b => b.serialNumber !== serialNumber);
       const newTotal = parseFloat(prev.totalAmount) - battery.price;
       return {
         ...prev,
@@ -186,7 +186,7 @@ const BatterySaleForm = () => {
                     <button
                       type="button"
                       className="btn btn-danger"
-                      onClick={() => removeBattery(battery.id)}
+                      onClick={() => removeBattery(battery.serialNumber)}
                       style={{padding: '5px 10px'}}
                     >
                       Remove

@@ -82,7 +82,7 @@ const CustomerDetail = () => {
         model: data.vehicle?.model || '',
         chassisNumber: data.vehicle?.chassisNumber || '',
         regnNumber: data.vehicle?.regnNumber || '',
-        exShowroomPrice: data.vehicle?.exshowroomPrice ? data.vehicle.exshowroomPrice.toString() : '',
+        exShowroomPrice: data.vehicle?.exShowroomPrice ? data.vehicle.exShowroomPrice.toString() : '',
         batterySerialName: data.vehicle?.batterySerialName || '',
         batteryCount: data.vehicle?.batteryCount ? data.vehicle.batteryCount.toString() : '',
         color: data.vehicle?.color || '',

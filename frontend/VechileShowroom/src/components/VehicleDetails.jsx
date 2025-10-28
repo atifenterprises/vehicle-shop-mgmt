@@ -21,8 +21,8 @@ const VehicleDetails = () => {
     toolKit: '',
     batterySerialNumber: '',
     batteryType: '',
-    vehicleChargerType: '',
-    exshowroomPrice: '',
+    vehicleChargerName: '',
+    exShowroomPrice: '',
     saleDate: '',
     vehicleStatus: 'In Stock',
   });
@@ -75,7 +75,7 @@ const VehicleDetails = () => {
     setError(null);
     setSuccessMessage(null);
     try {
-      const updatedVehicle = {        
+      const updatedVehicle = {
         purchaseDate: vehicle.purchaseDate,
         vehicleNumber: vehicle.vehicleNumber,
         engineNumber: vehicle.engineNumber,
@@ -87,10 +87,10 @@ const VehicleDetails = () => {
         toolKit: vehicle.toolKit,
         batterySerialNumber: vehicle.batterySerialNumber,
         batteryType: vehicle.batteryType,
-        vehicleChargerType: vehicle.vehicleChargerType,
-        exshowroomPrice: vehicle.exshowroomPrice,
+        vehicleChargerName: vehicle.vehicleChargerName,
+        exShowroomPrice: vehicle.exShowroomPrice,
         saleDate: vehicle.saleDate,
-       // vehicleStatus: 'In Stock',
+        vehicleStatus: vehicle.vehicleStatus,
       };
       //console.log('updatedVehicle :', {updatedVehicle});
       const response = await fetch(`http://localhost:5000/api/vehicles/${vehicle.vehicleNumber}`, {
@@ -122,20 +122,20 @@ const VehicleDetails = () => {
     if (!window.confirm('Are you sure you want to delete this vehicle?')) {
       return;
     }
+    if (vehicle.vehicleStatus === 'Sold') {
+      setError('Cannot delete a sold vehicle. Please update the vehicle status first.');
+      return;
+    }
     setLoading(true);
     setError(null);
     setSuccessMessage(null);
     try {
-      const { vehicle_id } = vehicle.vehicle_id;
-      const response = await fetch(`http://localhost:5000/api/deleteVehicles/${vehicle.vehicle_id}`, {
+      const response = await fetch(`http://localhost:5000/api/vehicles/${vehicle.vehicleNumber}`, {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-
       });
       if (!response.ok) {
-        throw new Error('Failed to delete vehicle');
+        const errorData = await response.json().catch(() => ({ error: 'Failed to delete vehicle' }));
+        throw new Error(errorData.error || 'Failed to delete vehicle');
       }
       setSuccessMessage('Vehicle deleted successfully!');
       navigate('/vehicles');
@@ -219,16 +219,12 @@ const VehicleDetails = () => {
 
       <form className="customer-detail customer-detail-form">
         <label>
-          Vehicle ID:
-          <input type="text" name="id" value={vehicle.vehicleNumber} onChange={handleChange} />
+          Vehicle Number:
+          <input type="text" name="vehicleNumber" value={vehicle.vehicleNumber} onChange={handleChange} />
         </label>
         <label>
           Purchase Date:
           <input type="date" name="purchaseDate" value={vehicle.purchaseDate} onChange={handleChange} />
-        </label>
-        <label>
-          Vehicle Number:
-          <input type="text" name="vehicleNumber" value={vehicle.vehicleNumber} onChange={handleChange} />
         </label>
         <label>
           Engine Number:
@@ -277,12 +273,12 @@ const VehicleDetails = () => {
         </label>
         <label>
           Vehicle Charger Name:
-          <input type="text" name="vehicleChargerType" value={vehicle.vehicleChargerType} onChange={handleChange} />
+          <input type="text" name="vehicleChargerName" value={vehicle.vehicleChargerName} onChange={handleChange} />
         </label>
 
         <label>
           Ex-Showroom Price:
-          <input type="number" name="exshowroomPrice" value={vehicle.exshowroomPrice} onChange={handleChange} />
+          <input type="number" name="exShowroomPrice" value={vehicle.exShowroomPrice} onChange={handleChange} />
         </label>
         <label>
           Sale Date:
@@ -299,7 +295,7 @@ const VehicleDetails = () => {
       </form>
 
       <div className="customer-detail-actions">
-        <button className="btn btn-primary" onClick={handleEdit}>Edit</button>
+        <button className="btn btn-primary" onClick={handleEdit}>Update</button>
         <button className="btn btn-delete" onClick={handleDelete}>Delete</button>
         <button className="btn btn-secondary" onClick={handlePrint}>Print Details</button>
       </div>
