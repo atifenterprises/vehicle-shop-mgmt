@@ -9,20 +9,24 @@ const SalesFinance = () => {
   const [dateRange, setDateRange] = useState({ from: '', to: '' });
   const navigate = useNavigate();
 
-
-
+  // Fetch only Finance sales (keep raw nested data)
   const fetchCustomers = async () => {
     try {
-      const response = await fetch('/api/customers');
+      const url = '/api/sales-details?saleType=Finance';
+      console.log('Fetching from:', url);
+
+      const response = await fetch(url);
       if (!response.ok) {
-        throw new Error('Failed to fetch customers');
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
+
       const data = await response.json();
-      console.log('Fetched customers:', data);
-      setCustomers(data);
-      setFilteredCustomers(data);
+      console.log('Fetched finance sales (nested):', data);
+
+      setCustomers(data); // Store raw nested data
     } catch (err) {
-      console.error(err);
+      console.error('Failed to fetch finance sales:', err);
+      alert('Failed to load data. Check console.');
     }
   };
 
@@ -30,37 +34,61 @@ const SalesFinance = () => {
     fetchCustomers();
   }, []);
 
+  
+  // Flatten + Filter whenever rawData or filters change
   useEffect(() => {
-    let filtered = customers;
+    // Flatten: one row per sale
+    const flatSales = customers
+      .filter(c => c.sales && c.sales.length > 0)
+      .flatMap(c =>
+        c.sales.map(sale => {
+          const vehicle = sale.vehicle || {};
+          return {
+            customer: c.customer,
+            sale,
+            vehicle,
+            // Derived fields
+            monthlyEMI: sale.EMIAmount ?? 0,
+            nextEmiDate: sale.firstEMIDate ?? null,
+            loanStatus: (sale.remainingAmount ?? 0) > 0 ? 'Active' : 'Closed',
+            bucket: 0,
+            overdueCharges: 0,
+            payableAmount: sale.remainingAmount ?? 0,
+          };
+        })
+      );
 
-    // Filter by sale type - only show finance sales
-    filtered = filtered.filter(c => c.saleType === 'finance');
+    // Apply filters
+    let filtered = [...flatSales];
 
-    // Filter by search term
-    if (searchTerm.trim() !== '') {
-      const lowerSearch = searchTerm.toLowerCase();
-      filtered = filtered.filter(c =>
-        c.name.toLowerCase().includes(lowerSearch) ||
-        c.loanNumber?.toLowerCase().includes(lowerSearch) ||
-        c.mobile?.toLowerCase().includes(lowerSearch)
+    // Search
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(s =>
+        s.customer.name?.toLowerCase().includes(term) ||
+        s.customer.mobileNo?.toLowerCase().includes(term) ||
+        s.sale.loanNumber?.toLowerCase().includes(term) ||
+        s.vehicle.chassisNumber?.toLowerCase().includes(term) ||
+        s.vehicle.vehicleNumber?.toLowerCase().includes(term)
       );
     }
 
-    // Filter by loan status
+    // Loan Status
     if (loanStatus !== 'All Status') {
-      filtered = filtered.filter(c => c.loanStatus === loanStatus);
+      filtered = filtered.filter(s => s.loanStatus === loanStatus);
     }
 
-    // Filter by date range (assuming customers have a 'date' field in yyyy-mm-dd)
+    // Date Range (on saleDate)
     if (dateRange.from && dateRange.to) {
-      filtered = filtered.filter(c => {
-        if (!c.date) return false;
-        return c.date >= dateRange.from && c.date <= dateRange.to;
+      filtered = filtered.filter(s => {
+        if (!s.sale.saleDate) return false;
+        return s.sale.saleDate >= dateRange.from && s.sale.saleDate <= dateRange.to;
       });
     }
 
     setFilteredCustomers(filtered);
-  }, [searchTerm, loanStatus, dateRange, customers]);
+    console.log('filtered :: ', filtered)
+  }, [customers, searchTerm, loanStatus, dateRange]);
 
   const clearFilters = () => {
     setSearchTerm('');
@@ -81,7 +109,7 @@ const SalesFinance = () => {
   }).length;
 
   const handleRowClick = (customer) => {
-    navigate(`/customers/${customer.id}`, { state: { customer, from: 'sales-finance' } });
+    navigate(`/customers/${customer.customer.customerId}`, { state: { customer, from: 'sales-finance' } });
   };
 
   const generateReportHTML = (customers) => {
@@ -314,13 +342,13 @@ const SalesFinance = () => {
               filteredCustomers.map((customer, index) => (
                 <tr key={customer.id ?? index} onClick={() => handleRowClick(customer)} style={{ cursor: 'pointer' }}>
                   <td>{index + 1}</td>
-                  <td>{customer.customerId ?? customer.id ?? '-'}</td>
-                  <td>{customer.name ?? '-'}</td>
-                  <td>{customer.mobile ?? customer.phone ?? '-'}</td>
-                  <td>{customer.loanNumber ?? customer.loan_no ?? '-'}</td>
-                  <td>{customer.chassisNumber ?? customer.chasisNo ?? customer.chasis_no ?? '-'}</td>
-                  <td>{customer.exShowroomPrice ?? customer.ex_showroom_price}</td>
-                  <td>{customer.loanAmount ?? customer.loan_amount}</td>
+                  <td>{customer.customer.customerId}</td>
+                  <td>{customer.customer.name}</td>
+                  <td>{customer.customer.mobileNo}</td>
+                  <td>{customer.sale.loanNumber}</td>
+                  <td>{customer.vehicle.chassisNumber}</td>
+                  <td>{customer.vehicle.exShowroomPrice }</td>
+                  <td>{customer.sale.loanAmount}</td>
                   <td>{customer.monthlyEMI ?? customer.monthly_emi ?? customer.emi}</td>
                   <td>{customer.bucket ?? customer.overdueCount ?? 0}</td>
                   <td>{customer.overdueCharges ?? customer.overdue_charges}</td>

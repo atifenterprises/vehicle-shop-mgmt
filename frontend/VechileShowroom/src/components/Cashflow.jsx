@@ -10,18 +10,26 @@ const Cashflow = () => {
     const [selectedStatus, setSelectedStatus] = useState('All');
     const [selectedShopNumber, setSelectedShopNumber] = useState('All');
     const navigate = useNavigate();
+
     const fetchCashflows = async () => {
         try {
-            const response = await fetch('http://localhost:5000/api/customers');
+            const url = '/api/sales-details?saleType=Cash';
+            console.log('Fetching from:', url);
+
+            const response = await fetch(url);
             if (!response.ok) {
-                throw new Error('Failed to fetch customers');
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
+
             const data = await response.json();
-            setCashflows(data);
-            setFilteredCashflows(data);
+            console.log('Fetched Cash sales (nested):', data);
+
+            setCashflows(data); // Store raw nested data
         } catch (err) {
-            console.error(err);
+            console.error('Failed to fetch cash sales:', err);
+            alert('Failed to load data. Check console.');
         }
+
     };
 
     // fetch the cashflows on component mount
@@ -30,36 +38,96 @@ const Cashflow = () => {
     }, []);
 
     // filter cashflows based on search term, date range, sale type, and status
+    // useEffect(() => {
+    //     let filtered = cashflows;
+
+    //     // Filter by sale type - only show cash sales
+    //     filtered = filtered.filter(c => c.saleType === 'Cash');
+
+    //     if (searchTerm.trim() !== '') {
+    //         const lowerSearch = searchTerm.toLowerCase();
+    //         filtered = filtered.filter(c =>
+    //             c.name?.toLowerCase().includes(lowerSearch) ||
+    //             c.mobile?.toLowerCase().includes(lowerSearch) ||
+    //             c.vehicleNumber?.toLowerCase().includes(lowerSearch) ||
+    //             c.customerId?.toLowerCase().includes(lowerSearch)
+    //         );
+    //     }
+    //     if (dateRange.from && dateRange.to) {
+    //         filtered = filtered.filter(c => {
+    //             if (!c.saleDate) return false;
+    //             return c.saleDate >= dateRange.from && c.saleDate <= dateRange.to;
+    //         });
+    //     }
+    //     if (selectedStatus !== 'All') {
+    //         filtered = filtered.filter(c => (c.loanStatus || 'Completed') === selectedStatus);
+    //     }
+    //     if (selectedShopNumber !== 'All') {
+    //         filtered = filtered.filter(c => c.shopNumber === selectedShopNumber);
+    //     }
+    //     setFilteredCashflows(filtered);
+    // }, [searchTerm, dateRange, selectedStatus, selectedShopNumber, cashflows]);
+
+
+    // Flatten + Filter whenever rawData or filters change
     useEffect(() => {
-        let filtered = cashflows;
+        // Flatten: one row per sale
+        const flatSales = cashflows
+            .filter(c => c.sales && c.sales.length > 0)
+            .flatMap(c =>
+                c.sales.map(sale => {
+                    const vehicle = sale.vehicle || {};
+                    return {
+                        customer: c.customer,
+                        sale,
+                        vehicle,
+                        // Derived fields
+                        monthlyEMI: sale.EMIAmount ?? 0,
+                        nextEmiDate: sale.firstEMIDate ?? null,
+                        loanStatus: (sale.remainingAmount ?? 0) > 0 ? 'Active' : 'Closed',
+                        bucket: 0,
+                        overdueCharges: 0,
+                        payableAmount: sale.remainingAmount ?? 0,
+                    };
+                })
+            );
 
-        // Filter by sale type - only show cash sales
-        filtered = filtered.filter(c => c.saleType === 'Cash');
+        // Apply filters
+        let filtered = [...flatSales];
 
-        if (searchTerm.trim() !== '') {
-            const lowerSearch = searchTerm.toLowerCase();
-            filtered = filtered.filter(c =>
-                c.name?.toLowerCase().includes(lowerSearch) ||
-                c.mobile?.toLowerCase().includes(lowerSearch) ||
-                c.vehicleNumber?.toLowerCase().includes(lowerSearch) ||
-                c.customerId?.toLowerCase().includes(lowerSearch)
+        // Search
+        if (searchTerm.trim()) {
+            const term = searchTerm.toLowerCase();
+            filtered = filtered.filter(s =>
+                s.customer.name?.toLowerCase().includes(term) ||
+                s.customer.mobileNo?.toLowerCase().includes(term) ||
+                s.sale.loanNumber?.toLowerCase().includes(term) ||
+                s.vehicle.chassisNumber?.toLowerCase().includes(term) ||
+                s.vehicle.vehicleNumber?.toLowerCase().includes(term)
             );
         }
-        if (dateRange.from && dateRange.to) {
-            filtered = filtered.filter(c => {
-                if (!c.saleDate) return false;
-                return c.saleDate >= dateRange.from && c.saleDate <= dateRange.to;
-            });
-        }
-        if (selectedStatus !== 'All') {
+
+        // Loan Status
+         if (selectedStatus !== 'All') {
             filtered = filtered.filter(c => (c.loanStatus || 'Completed') === selectedStatus);
         }
         if (selectedShopNumber !== 'All') {
             filtered = filtered.filter(c => c.shopNumber === selectedShopNumber);
         }
+
+        // Date Range (on saleDate)
+        if (dateRange.from && dateRange.to) {
+            filtered = filtered.filter(s => {
+                if (!s.sale.saleDate) return false;
+                return s.sale.saleDate >= dateRange.from && s.sale.saleDate <= dateRange.to;
+            });
+        }
+
         setFilteredCashflows(filtered);
+        console.log('filtered cash flow:: ', filtered)
     }, [searchTerm, dateRange, selectedStatus, selectedShopNumber, cashflows]);
 
+    
     const clearFilters = () => {
         setSearchTerm('');
         setSelectedStatus('All');
@@ -68,7 +136,7 @@ const Cashflow = () => {
     };
 
     const handleRowClick = (customer) => {
-        navigate(`/customers/${customer.id}`, { state: { customer, from: 'cashflow' } });
+        navigate(`/customers/${customer.customer.customerId}`, { state: { customer, from: 'cashflow' } });
     };
 
     const generateReportHTML = (customers) => {
@@ -217,103 +285,104 @@ const Cashflow = () => {
                     </div>
                 </div>
                 <div className="customer-filters">
-                <input
-                    type="text"
-                    placeholder="Search by Customer, Mobile Number, and Vehicle..."
-                    value={searchTerm}
-                    onChange={e => setSearchTerm(e.target.value)}
-                    className="input-search"
-                />
-                <select
-                    value={selectedStatus}
-                    onChange={e => setSelectedStatus(e.target.value)}
-                    className="input-select"
-                    style={{ marginLeft: '10px', padding: '5px' }}
-                >
-                    <option value="All">All Statuses</option>
-                    <option value="Completed">Completed</option>
-                    <option value="Pending">Pending</option>
-                    <option value="Failed">Failed</option>
-                </select>
-                <select
-                    value={selectedShopNumber}
-                    onChange={e => setSelectedShopNumber(e.target.value)}
-                    className="input-select"
-                    style={{ marginLeft: '10px', padding: '5px' }}
-                >
-                    <option value="All">All Shops</option>
-                    <option value="1">Shop 1</option>
-                    <option value="2">Shop 2</option>
-                    <option value="3">Shop 3</option>
-                    <option value="4">Shop 4</option>
-                    <option value="5">Shop 5</option>
-                </select>
-                <div className="date-filters">
-                    <label>
-                        From:
-                        <input
-                            type="date"
-                            value={dateRange.from}
-                            onChange={e => setDateRange({ ...dateRange, from: e.target.value })}
-                            className="input-date"
-                        />
-                    </label>
-                    <label>
-                        To:
-                        <input
-                            type="date"
-                            value={dateRange.to}
-                            onChange={e => setDateRange({ ...dateRange, to: e.target.value })}
-                            className="input-date"
-                        />
-                    </label>
+                    <input
+                        type="text"
+                        placeholder="Search by Customer, Mobile Number, and Vehicle..."
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        className="input-search"
+                    />
+                    <select
+                        value={selectedStatus}
+                        onChange={e => setSelectedStatus(e.target.value)}
+                        className="input-select"
+                        style={{ marginLeft: '10px', padding: '5px' }}
+                    >
+                        <option value="All">All Statuses</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Failed">Failed</option>
+                    </select>
+                    <select
+                        value={selectedShopNumber}
+                        onChange={e => setSelectedShopNumber(e.target.value)}
+                        className="input-select"
+                        style={{ marginLeft: '10px', padding: '5px' }}
+                    >
+                        <option value="All">All Shops</option>
+                        <option value="1">Shop 1</option>
+                        <option value="2">Shop 2</option>
+                        <option value="3">Shop 3</option>
+                        <option value="4">Shop 4</option>
+                        <option value="5">Shop 5</option>
+                    </select>
+                    <div className="date-filters">
+                        <label>
+                            From:
+                            <input
+                                type="date"
+                                value={dateRange.from}
+                                onChange={e => setDateRange({ ...dateRange, from: e.target.value })}
+                                className="input-date"
+                            />
+                        </label>
+                        <label>
+                            To:
+                            <input
+                                type="date"
+                                value={dateRange.to}
+                                onChange={e => setDateRange({ ...dateRange, to: e.target.value })}
+                                className="input-date"
+                            />
+                        </label>
+                    </div>
+                    <button className="btn btn-clear" onClick={clearFilters}>Clear</button>
                 </div>
-                <button className="btn btn-clear" onClick={clearFilters}>Clear</button>
-            </div>
-            <table className="customer-table">
-                <thead>
-                    <tr>
-                        <th>Sl. Number</th>
-                        <th>Customer ID</th>
-                        <th>Customer Name</th>
-                        <th>Address</th>
-                        <th>Mobile No.</th>
-                        <th>Sale Date</th>
-                        <th>Shop Number</th>
-                        <th>Total Amount (₹)</th>
-                        <th>Paid Amount (₹)</th>
-                        <th>Remainig Amount(₹)</th>
-                        <th>Last Date of Payment</th>
-                        <th>Status</th>
-
-                    </tr>
-                </thead>
-                <tbody>
-                    {filteredCashflows.length === 0 ? (
+                <table className="customer-table">
+                    <thead>
                         <tr>
-                            <td colSpan="13" className="no-data">No cashflow customers found.</td>
+                            <th>Sl. Number</th>
+                            <th>Customer ID</th>
+                            <th>Customer Name</th>
+                            <th>Address</th>
+                            <th>Mobile No.</th>
+                            <th>Sale Date</th>
+                            <th>Shop Number</th>
+                            <th>Total Amount (₹)</th>
+                            <th>Paid Amount (₹)</th>
+                            <th>Remainig Amount(₹)</th>
+                            <th>Last Date of Payment</th>
+                            <th>Status</th>
+
                         </tr>
-                    ) : (
-                        filteredCashflows.map((customer, index) => (
-                            <tr key={customer.id || index} className="clickable-row" onClick={() => handleRowClick(customer)}>
-                                <td>{index + 1}</td>
-                                <td>{customer.customerId || '-'}</td>
-                                <td>{customer.name || '-'}</td>
-                                <td>{customer.address || '-'}</td>
-                                <td>{customer.mobile || '-'}</td>
-                                <td>{customer.saleType || '-'}</td>
-                                <td>{customer.saleDate || '-'}</td>
-                                <td>{customer.shopNumber || '-'}</td>
-                                <td>{customer.totalAmount || '-'}</td>
-                                <td>{customer.downPayment || '0'}</td>
-                                <td>{customer.loanAmount ? customer.loanAmount - customer.downPayment : '-'}</td>
-                                <td>{customer.firstEmiDate || '-'}</td>
-                                <td>{customer.loanStatus || 'Completed'}</td>
+                    </thead>
+                    <tbody>
+                        {filteredCashflows.length === 0 ? (
+                            <tr>
+                                <td colSpan="13" className="no-data">No cashflow customers found.</td>
                             </tr>
-                        ))
-                    )}
-                </tbody>
-            </table>
+                        ) : (
+                            filteredCashflows.map((customer, index) => (
+                                <tr key={customer.id || index} className="clickable-row" onClick={() => handleRowClick(customer)}>
+                                    <td>{index + 1}</td>
+                                    <td>{customer.customer.customerId || '-'}</td>
+                                    <td>{customer.customer.name || '-'}</td>
+                                    <td>{customer.customer.address || '-'}</td>
+                                    <td>{customer.customer.mobileNo || '-'}</td>
+                                    {/* <td>{customer.saleType || '-'}</td> */}
+                                    <td>{customer.customer.date || '-'}</td>
+                                    <td>{customer.sale.shopNumber || '-'}</td>
+                                    <td>{customer.sale.totalAmount || '-'}</td>
+                                    <td>{customer.sale.paidAmount || '0'}</td>
+                                    {/* <td>{customer.loanAmount ? customer.loanAmount - customer.downPayment : '-'}</td> */}
+                                    <td>{customer.sale.remainingAmount || '-'}</td>
+                                    <td>{customer.sale.lastpaymentDate || '-'}</td>
+                                    <td>{customer.loanStatus || 'Completed'}</td>
+                                </tr>
+                            ))
+                        )}
+                    </tbody>
+                </table>
             </section>
         </div>
     );

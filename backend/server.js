@@ -647,6 +647,41 @@ const generateEmiSchedule = (firstEmiDate, tenure, emiAmount, loanAmount) => {
   return schedule;
 };
 
+// GET /api/sales-details - Fetch customer + vehicle + sale data
+app.get("/api/sales-details", async (req, res) => {
+  try {
+    console.log('originalUrl by get:', req.originalUrl);
+    console.log('Query params:', req.query);
+
+    const {
+      customerId,
+      mobileNo,
+      ckycNo,
+      vehicleNumber,
+      loanNumber,
+      saleType
+    } = req.query;
+
+    // Call the RPC function
+    const { data, error } = await supabase.rpc('get_customer_vehicle_sale_details_basedon_saletype', {
+      p_customer_id: customerId || null,
+      p_mobile_no: mobileNo || null,
+      p_ckyc_no: ckycNo || null,
+      p_vehicle_number: vehicleNumber || null,
+      p_loan_number: loanNumber || null,
+      p_sale_type: saleType || null
+    });
+
+    if (error) throw error;
+
+    console.log('Sales details data:', data);
+    res.json(data);  // Return raw JSON array
+  } catch (err) {
+    console.error('Error in GET /api/sales-details:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET customers
 app.get("/api/customers", async (req, res) => {
   try {
@@ -798,7 +833,7 @@ app.put('/api/customers/:customerId', async (req, res) => {
     loanAmount: parseFloat(formData.loanAmount) || 0,
     tenure: parseInt(formData.tenure) || 0,
     firstEMIDate: formData.firstEmiDate || null,
-    EMIAmount : parseFloat(formData.EMIAmount) || 0,
+    EMIAmount : parseFloat(formData.emiAmount) || 0,
     emiSchedule : (formData.emiSchedule && Array.isArray(formData.emiSchedule)) ? formData.emiSchedule.map(emi => ({
       emiNo: parseInt(emi.emiNo) || 0,
       date: emi.date || '',
@@ -916,6 +951,8 @@ app.put('/api/customers/:customerId', async (req, res) => {
     return res.status(500).json({ error: 'Internal server error: ' + error.message });
   }
 });
+
+
 
 app.get("/api/vehicles", async (req, res) => {
   try {
