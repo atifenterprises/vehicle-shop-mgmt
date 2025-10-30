@@ -24,7 +24,7 @@ import ForgotPassword from './Auth/ForgotPassword.jsx';
 import ResetPassword from './Auth/ResetPassword.jsx';
 import { useEffect } from 'react';
 import SignUpForm from './Auth/SignUpForm.jsx';
-
+import SalesFinance from './components/SalesFinance.jsx';
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
   console.log('isAuthenticated1:', isAuthenticated);
@@ -70,6 +70,7 @@ function App() {
         <Route path="/battery-sale" element={<ProtectedRoute><BatterySaleForm /></ProtectedRoute>} />
         <Route path="/battery-invoice/:id" element={<ProtectedRoute><BatteryInvoice /></ProtectedRoute>} />
         <Route path="/cashflows" element={<ProtectedRoute><Cashflow /></ProtectedRoute>} />
+        <Route path="/sales-finance" element={<ProtectedRoute><SalesFinance/></ProtectedRoute>} />
         <Route path="/customerEnquiry" element={<ProtectedRoute><CustomerEnquiry /></ProtectedRoute>} />
       </Routes>
       {isEMIDialogOpen && (

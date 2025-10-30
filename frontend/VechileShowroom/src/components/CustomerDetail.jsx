@@ -32,8 +32,9 @@ const CustomerDetail = () => {
     chassisNumber: '',
     regnNumber: '',
     exShowroomPrice: '',
-    batterySerialName: '',
+    batterySerialNumber: '',
     batteryCount: '',
+    vehicleChargerName:'',
     saleType: '',
     shopNumber: '',
     loanNumber: '',
@@ -83,8 +84,9 @@ const CustomerDetail = () => {
         chassisNumber: data.vehicle?.chassisNumber || '',
         regnNumber: data.vehicle?.regnNumber || '',
         exShowroomPrice: data.vehicle?.exShowroomPrice ? data.vehicle.exShowroomPrice.toString() : '',
-        batterySerialName: data.vehicle?.batterySerialName || '',
+        batterySerialNumber: data.vehicle?.batterySerialNumber || '',
         batteryCount: data.vehicle?.batteryCount ? data.vehicle.batteryCount.toString() : '',
+        vehicleChargerName:data.vehicle?.vehicleChargerName ||'',
         color: data.vehicle?.color || '',
         toolKit: data.vehicle?.toolKit || '',
         batteryType: data.vehicle?.batteryType || '',
@@ -103,6 +105,7 @@ const CustomerDetail = () => {
         tenure: data.sales?.tenure ? data.sales.tenure.toString() : '',
         firstEmiDate: data.sales?.firstEMIDate || '',
         emiAmount: data.sales?.EMIAmount ? data.sales.EMIAmount.toString() : '',
+        interestRate:data.sales?.interestRate? data.sales.interestRate.toString():'',
         emiSchedule: data.sales?.emiSchedule && Array.isArray(data.sales.emiSchedule) ? updateBuckets(data.sales.emiSchedule) : [],
         loanStatus: data.summary?.loanStatus || '',
         nextEmiDate: data.summary?.nextEmiDate || '',
@@ -466,7 +469,7 @@ const CustomerDetail = () => {
         </label>
         <label>
           Battery Serial Name:
-          <input type="text" name="batterySerialName" value={customer.batterySerialName} onChange={handleChange} />
+          <input type="text" name="batterySerialNumber" value={customer.batterySerialNumber} onChange={handleChange} />
         </label>
         <label>
           Battery Count:
@@ -486,7 +489,7 @@ const CustomerDetail = () => {
         </label>
         <label>
           Vehicle Charger Type:
-          <input type="text" name="vehicleChargerType" value={customer.vehicleChargerType} onChange={handleChange} />
+          <input type="text" name="vehicleChargerName" value={customer.vehicleChargerName} onChange={handleChange} />
         </label>
         <label>
           Purchase Date:
