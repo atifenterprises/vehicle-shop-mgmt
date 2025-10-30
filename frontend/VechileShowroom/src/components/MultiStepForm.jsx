@@ -15,6 +15,7 @@ const MultiStepForm = () => {
     mobileNo: '',
     ckycNo: '',
     address: '',
+    customerStatus: 'Active',
     // Vehicle
     vehicleNumber: '',
     engineNumber: '',
@@ -34,6 +35,7 @@ const MultiStepForm = () => {
     vehicleStatus: '',
     // Sales
     saleType: '',
+    salesStatus: '',
     // Sales - Cash fields
     shopNumber: '',
     totalAmount: '',
@@ -105,6 +107,12 @@ const MultiStepForm = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+
+    // Set default salesStatus based on saleType
+    if (name === 'saleType') {
+      const defaultStatus = value === 'Cash' ? 'Active' : 'Active';
+      setFormData(prev => ({ ...prev, salesStatus: defaultStatus }));
+    }
 
     // Auto-calculate EMI if relevant fields change (only for Finance)
     if (['totalAmount', 'downPayment', 'tenure', 'interestRate'].includes(name)) {
@@ -243,6 +251,13 @@ const MultiStepForm = () => {
               <label>Address:</label>
               <textarea name="address" value={formData.address} onChange={handleChange} required />
             </div>
+            <div className="form-row">
+              <label>Customer Status:</label>
+              <select name="customerStatus" value={formData.customerStatus} onChange={handleChange} required>
+                <option value="Active">Active</option>
+                <option value="Closed">Closed</option>
+              </select>
+            </div>
           </div>
         );
       case 1:
@@ -364,6 +379,16 @@ const MultiStepForm = () => {
               </div>
             </div>
 
+            {/* Sales Status */}
+            <div className="form-row">
+              <label>Sales Status:</label>
+              <select name="salesStatus" value={formData.salesStatus} onChange={handleChange} required>
+                <option value="Active">Active</option>
+                <option value="Closed">Closed</option>
+                {formData.saleType === 'Finance' && <option value="Overdue">Overdue</option>}
+              </select>
+            </div>
+
             {/* Cash Sale Fields */}
             {formData.saleType === 'Cash' && (
               <>
@@ -480,7 +505,8 @@ const MultiStepForm = () => {
             <div className="preview-section">
               <h4>Sales Details</h4>
               <p><strong>Sale Type:</strong> {formData.saleType}</p>
-
+              <p><strong>Sales Status:</strong> {formData.salesStatus}</p>
+              
               {/* Cash Sale Preview */}
               {formData.saleType === 'Cash' && (
                 <>

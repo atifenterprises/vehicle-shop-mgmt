@@ -79,7 +79,10 @@ export default function SignupPage() {
   return (
     <div className="container">
       <div className="form-box">
-        <h2 className="form-title">Sign Up</h2>
+        <div className="form-header">
+          <h2 className="form-title">Sign Up</h2>
+          <button className="cancel-btn" onClick={() => navigate("/")}>×</button>
+        </div>
 
         {errorMessage && <div className="error-message">{errorMessage}</div>}
         {successMessage && <div className="success-message">{successMessage}</div>}

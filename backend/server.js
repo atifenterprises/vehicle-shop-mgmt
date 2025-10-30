@@ -275,8 +275,8 @@ app.get("/api/dashboard/metrics", async (req, res) => {
     if (batterySalesError) throw batterySalesError;
 
     // Calculate metrics from data
-    const financeCustomers = customersData.filter(c => c.saleType === 'finance');
-    const cashCustomers = customersData.filter(c => c.saleType === 'cash');
+    const financeCustomers = customersData.filter(c => c.saleType === 'Finance');
+    const cashCustomers = customersData.filter(c => c.saleType === 'Cash');
     const activeLoans = financeCustomers.filter(c => c.loanStatus === 'Active');
     const overduePayments = financeCustomers.filter(c => c.loanStatus === 'Overdue');
 
@@ -330,7 +330,7 @@ app.get("/api/dashboard/monthly-collection", async (req, res) => {
 
     // Aggregate EMI collections by month from finance customers
     const emiMonthly = {};
-    customersData.filter(c => c.saleType === 'finance').forEach(customer => {
+    customersData.filter(c => c.saleType === 'Finance').forEach(customer => {
       if (customer.emiSchedule && Array.isArray(customer.emiSchedule)) {
         customer.emiSchedule.forEach(emi => {
           if (emi.status === 'Paid') {
@@ -367,9 +367,7 @@ app.get("/api/dashboard/loan-status", async (req, res) => {
   try {
     const { data: customersData, error: customersError } = await supabase.from('customers').select('*');
     if (customersError) throw customersError;
-
-    const financeCustomers = customersData.filter(c => c.saleType === 'finance');
-
+    const financeCustomers = customersData.filter(c => c.saleType === 'Finance');
     let activeCount = 0;
     let closedCount = 0;
     let overdueCount = 0;
@@ -397,9 +395,7 @@ app.get("/api/dashboard/loan-status", async (req, res) => {
 app.post('/api/sales', async (req, res) => {
   try {
     const formData = req.body;
-
     console.log('FormData:', { formData });
-
     // Insert customer
     const customerData = {
       customerId: formData.customerId,
@@ -410,7 +406,6 @@ app.post('/api/sales', async (req, res) => {
       ckycNo: formData.ckycNo,
       address: formData.address,
     };
-
 
     // Insert vehicle
     const vehicleData = {
@@ -431,7 +426,6 @@ app.post('/api/sales', async (req, res) => {
       saleDate: formData.saleDate || null,
       vehicleStatus: formData.vehicleStatus || 'Sold',
     };
-
 
     const vehicleId = vehicleData.vehicle_id;
 
@@ -522,16 +516,16 @@ app.post('/api/sales', async (req, res) => {
 // API endpoint for sales by type
 app.get("/api/dashboard/sales-by-type", async (req, res) => {
   try {
-    const { data: customersData, error: customersError } = await supabase.from('customers').select('*');
-    if (customersError) throw customersError;
+    const { data: salesData, error: salesError } = await supabase.from('sales').select('*');
+    if (salesError) throw salesError;
 
-    const financeCustomers = customersData.filter(c => c.saleType === 'finance');
-    const cashCustomers = customersData.filter(c => c.saleType === 'cash');
+    const financeSales = salesData.filter(s => s.saleType === 'Finance');
+    const cashSales = salesData.filter(s => s.saleType === 'Cash');
 
-    const financeCount = financeCustomers.length;
-    const cashCount = cashCustomers.length;
-    const financeAmount = financeCustomers.reduce((sum, c) => sum + parseFloat(c.totalAmount.replace(/,/g, '')), 0);
-    const cashAmount = cashCustomers.reduce((sum, c) => sum + parseFloat(c.totalAmount.replace(/,/g, '')), 0);
+    const financeCount = financeSales.length;
+    const cashCount = cashSales.length;
+    const financeAmount = financeSales.reduce((sum, s) => sum + parseFloat(s.totalAmount || 0), 0);
+    const cashAmount = cashSales.reduce((sum, s) => sum + parseFloat(s.totalAmount || 0), 0);
 
     res.json({
       types: ["Finance", "Cash"],
@@ -553,34 +547,75 @@ app.get("/api/dashboard/recent-payments", async (req, res) => {
     if (batterySalesError) throw batterySalesError;
 
     const payments = [];
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
 
     // From finance customers: use saleDate as payment date, assume paid
-    customersData.filter(c => c.saleType === 'finance').forEach(c => {
-      payments.push({
-        customer: c.name,
-        loanNo: c.loanNumber,
-        amount: c.EMIAmount,
-        date: c.saleDate,
-        status: 'Paid'
-      });
+    customersData.filter(c => c.saleType === 'Finance').forEach(c => {
+      const paymentDate = new Date(c.saleDate);
+      if (paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear) {
+        payments.push({
+          customer: c.name,
+          loanNo: c.loanNumber,
+          amount: c.EMIAmount,
+          date: c.saleDate,
+          status: 'Paid'
+        });
+      }
     });
 
     // From battery sales
     batterySalesData.forEach(b => {
-      payments.push({
-        customer: b.customerName,
-        loanNo: '',
-        amount: b.totalAmount,
-        date: b.saleDate,
-        status: 'Paid'
-      });
+      const paymentDate = new Date(b.saleDate);
+      if (paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear) {
+        payments.push({
+          customer: b.customerName,
+          loanNo: '',
+          amount: b.totalAmount,
+          date: b.saleDate,
+          status: 'Paid'
+        });
+      }
     });
 
     // Sort by date descending
     payments.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-    // Limit to 10
-    res.json(payments.slice(0, 10));
+    // Return all payments for the current month (no limit)
+    res.json(payments);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// API endpoint for upcoming payments
+app.get("/api/dashboard/upcoming-payments", async (req, res) => {
+  try {
+    const { data: customersData, error: customersError } = await supabase.from('customers').select('*');
+    if (customersError) throw customersError;
+    const upcoming = [];
+    const today = new Date();
+    const fiveDaysLater = new Date(today);
+    fiveDaysLater.setDate(today.getDate() + 5);
+
+    // Finance customers with due EMIs within next 5 days
+    customersData.filter(c => c.saleType === 'Finance').forEach(customer => {
+      if (customer.emiSchedule && Array.isArray(customer.emiSchedule)) {
+        customer.emiSchedule.filter(emi => emi.status === 'Due').forEach(emi => {
+          const dueDate = new Date(emi.date);
+          if (dueDate >= today && dueDate <= fiveDaysLater) {
+            upcoming.push({
+              customer: customer.name,
+              loanNo: customer.loanNumber,
+              amount: emi.amount,
+              dueDate: emi.date
+            });
+          }
+        });
+      }
+    });
+
+    res.json(upcoming);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -591,20 +626,61 @@ app.get("/api/dashboard/due-payments", async (req, res) => {
   try {
     const { data: customersData, error: customersError } = await supabase.from('customers').select('*');
     if (customersError) throw customersError;
-
     const dues = [];
-
-    // Finance customers with overdue status
-    customersData.filter(c => c.saleType === 'finance' && c.loanStatus === 'Overdue').forEach(c => {
-      dues.push({
-        customer: c.name,
-        loanNo: c.loanNumber,
-        amount: c.EMIAmount,
-        dueDate: c.nextEmiDate
-      });
+    // Finance customers
+    customersData.filter(c => c.saleType === 'Finance').forEach(c => {
+      if (c.emiSchedule && Array.isArray(c.emiSchedule)) {
+        const overdueEmis = c.emiSchedule.filter(emi => emi.status === 'Overdue');
+        if (overdueEmis.length > 0) {
+          // Calculate bucket: count of overdue EMIs and total overdue amount
+          let overdueCount = overdueEmis.length;
+          let totalOverdueAmount = overdueEmis.reduce((sum, emi) => sum + parseFloat(emi.amount), 0);
+          // Use the earliest overdue due date
+          const earliestOverdueDate = overdueEmis.reduce((earliest, emi) => {
+            const emiDate = new Date(emi.date);
+            return emiDate < earliest ? emiDate : earliest;
+          }, new Date(overdueEmis[0].date));
+          dues.push({
+            customer: c.name,
+            loanNo: c.loanNumber,
+            amount: c.EMIAmount,
+            dueDate: earliestOverdueDate.toISOString().split('T')[0],
+            type: 'EMI',
+            bucketCount: overdueCount,
+            bucketAmount: totalOverdueAmount
+          });
+        }
+      }
     });
 
     res.json(dues);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// API endpoint for EMI payments
+app.get("/api/emi-payments", async (req, res) => {
+  try {
+    const { data: customersData, error: customersError } = await supabase.from('customers').select('*');
+    if (customersError) throw customersError;
+
+    const emiPayments = [];
+    customersData.filter(c => c.saleType === 'Finance').forEach(customer => {
+      if (customer.emiSchedule && Array.isArray(customer.emiSchedule)) {
+        customer.emiSchedule.forEach(emi => {
+          emiPayments.push({
+            customerName: customer.name,
+            loanNumber: customer.loanNumber,
+            emiAmount: emi.amount,
+            dueDate: emi.date,
+            status: emi.status
+          });
+        });
+      }
+    });
+
+    res.json(emiPayments);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -952,8 +1028,6 @@ app.put('/api/customers/:customerId', async (req, res) => {
   }
 });
 
-
-
 app.get("/api/vehicles", async (req, res) => {
   try {
     const { data, error } = await supabase.from('vehicles').select('*');
@@ -1106,7 +1180,7 @@ app.put("/api/vehicles/:vehicleNumber/status", async (req, res) => {
       .update({ vehicleStatus: status })
       .eq('vehicleNumber', req.params.vehicleNumber)
       .select();
-
+      
     if (error) throw error;
     if (data.length === 0) {
       return res.status(404).json({ error: 'Vehicle not found' });

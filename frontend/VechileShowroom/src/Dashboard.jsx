@@ -11,6 +11,7 @@ const Dashboard = ({ openEMIDialog }) => {
   const [salesByType, setSalesByType] = useState(null);
   const [recentPayments, setRecentPayments] = useState(null);
   const [duePayments, setDuePayments] = useState(null);
+  const [upcomingPayments, setUpcomingPayments] = useState(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(window.innerWidth < 768);
   const [showSignupDropdown, setShowSignupDropdown] = useState(false);
   const { logout } = useAuth();
@@ -46,6 +47,10 @@ const Dashboard = ({ openEMIDialog }) => {
     fetch("http://localhost:5000/api/dashboard/due-payments")
       .then((res) => res.json())
       .then((data) => setDuePayments(data));
+
+    fetch("http://localhost:5000/api/dashboard/upcoming-payments")
+      .then((res) => res.json())
+      .then((data) => setUpcomingPayments(data));
 
     return () => {
       window.removeEventListener('resize', handleResize);
@@ -106,13 +111,14 @@ const Dashboard = ({ openEMIDialog }) => {
 
                   {/* NEW: Sign out link */}
                   <button
-                    className="dropdown-item signout-btn"                   
+                    className="dropdown-item signout-btn"
                     onClick={() => {
                       logout();                    // Call logout from AuthContext
                       setShowSignupDropdown(false);
                       navigate('/login');          // Redirect to login
                     }}
-                  >                    
+                  >
+                    Sign Out
                   </button>
                 </div>
               )}
@@ -210,30 +216,49 @@ const Dashboard = ({ openEMIDialog }) => {
         <section className="recent-payments-section">
           <div className="recent-payments-header">
             <h2>Recent Payments</h2>
-            <a href="/loan-repayments" className="view-all-link">View All</a>
+            <Link to="/loan-repayments" className="view-all-link">View All</Link>
           </div>
-          <table className="customer-table">
-            <thead>
-              <tr>
-                <th>Customer</th>
-                <th>Loan No</th>
-                <th>Amount</th>
-                <th>Date</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentPayments && recentPayments.map((payment, idx) => (
-                <tr key={idx}>
-                  <td>{payment.customer}</td>
-                  <td>{payment.loanNo}</td>
-                  <td>₹{parseFloat(payment.amount).toLocaleString('en-IN')}</td>
-                  <td>{new Date(payment.date).toLocaleDateString('en-IN')}</td>
-                  <td><span className="status-paid">{payment.status}</span></td>
+          <div className="scrollable-table-container">
+            <table className="customer-table">
+              <thead>
+                <tr>
+                  <th>Customer</th>
+                  <th>Loan No</th>
+                  <th>Amount</th>
+                  <th>Date</th>
+                  <th>Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {recentPayments && recentPayments.map((payment, idx) => (
+                  <tr key={idx}>
+                    <td>{payment.customer}</td>
+                    <td>{payment.loanNo}</td>
+                    <td>₹{parseFloat(payment.amount).toLocaleString('en-IN')}</td>
+                    <td>{new Date(payment.date).toLocaleDateString('en-IN')}</td>
+                    <td><span className="status-paid">{payment.status}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="upcoming-payments-alert">
+          <div className="alert-header">
+            <span className="alert-icon">⏰</span>
+            <h3>Upcoming Payments</h3>
+          </div>
+          {upcomingPayments && upcomingPayments.map((upcoming, idx) => (
+            <div key={idx} className="upcoming-payment-item">
+              <div className="upcoming-payment-info">
+                <strong>{upcoming.customer} - {upcoming.loanNo}</strong>
+                <div className="upcoming-due-date">Due: {new Date(upcoming.dueDate).toLocaleDateString('en-IN')}</div>
+                <div className="upcoming-type">EMI</div>
+              </div>
+              <div className="upcoming-amount">₹{parseFloat(upcoming.amount).toLocaleString('en-IN')}</div>
+            </div>
+          ))}
         </section>
 
         <section className="due-payments-alert">
@@ -247,6 +272,7 @@ const Dashboard = ({ openEMIDialog }) => {
                 <strong>{due.customer} - {due.loanNo}</strong>
                 <div className="due-date">Due: {new Date(due.dueDate).toLocaleDateString('en-IN')}</div>
                 <div className="due-type">{due.type}</div>
+                <div className="bucket-info">Bucket: {due.bucketCount} EMIs (₹{parseFloat(due.bucketAmount).toLocaleString('en-IN')})</div>
               </div>
               <div className="due-amount">₹{parseFloat(due.amount).toLocaleString('en-IN')}</div>
             </div>

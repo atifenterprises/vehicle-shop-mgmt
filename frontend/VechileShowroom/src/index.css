@@ -1139,6 +1139,44 @@ h1 {
   display: inline-block;
 }
 
+/* Upcoming Payments Alert Section */
+.upcoming-payments-alert {
+  background-color: #fefce8;
+  border: 1px solid #fbbf24;
+  border-radius: 12px;
+  padding: 1rem 1.5rem;
+  margin-top: 1.5rem;
+  box-shadow: 0 1px 4px rgba(251, 191, 36, 0.3);
+}
+
+.upcoming-payment-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.upcoming-payment-info strong {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #111827;
+}
+
+.upcoming-due-date {
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.upcoming-amount {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #d97706;
+}
+
 /* Due Payments Alert Section */
 .due-payments-alert {
   background-color: #fef3f2;
@@ -1600,6 +1638,14 @@ h1 {
   }
 }
 
+/* Scrollable table container */
+.scrollable-table-container {
+  max-height: 400px;
+  overflow-y: auto;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
 /* Additional classes for moved inline styles */
 .btn-margin-left {
   margin-left: 10px;
@@ -1929,11 +1975,4 @@ h1 {
 .signout-btn:hover {
   background: #fee2e2 !important;
   color: #b91c1c !important;
-}
-
-/* Optional: Add icon */
-.signout-btn::before {
-  content: "Logout";
-  margin-right: 6px;
-  font-size: 1.1em;
 }

@@ -80,7 +80,8 @@ const Vehicle = () => {
   };
 
   // Stats calculations (calculated locally from vehicles data - consistent with Customer.jsx)
-  const totalAvailableStocks = vehicles.length;
+  const availableVehicles = vehicles.filter(v => v.vehicleStatus === 'In Stock' || v.vehicleStatus === 'Low Stock');
+  const totalAvailableStocks = availableVehicles.length;
 
   // Calculate monthly sales from vehicle data (vehicles with saleDate in current month)
   const soldThisMonth = vehicles.filter(vehicle => {
@@ -91,8 +92,14 @@ const Vehicle = () => {
       saleDate.getFullYear() === now.getFullYear();
   }).length;
 
-  const lowStockCount = vehicles.filter(v => v.vehicleStatus === 'In Stock').length;
-  const outOfStockCount = vehicles.filter(v => v.vehicleStatus === 'Sold').length;
+  // Group by batteryType and count available vehicles
+  const allBatteryTypes = new Set(vehicles.map(v => v.batteryType || 'Unknown'));
+  const batteryTypeCounts = {};
+  for (const type of allBatteryTypes) {
+    batteryTypeCounts[type] = availableVehicles.filter(v => (v.batteryType || 'Unknown') === type).length;
+  }
+
+  const lowStockTypes = Object.keys(batteryTypeCounts).filter(type => batteryTypeCounts[type] > 0 && batteryTypeCounts[type] < 5).map(type => ({type, count: batteryTypeCounts[type]}));
 
   const handleRowClick = (vehicle) => {
     console.log(vehicle);
@@ -204,17 +211,19 @@ const Vehicle = () => {
         <div className="metric-card">
           <div className="metric-info">
             <div className="metric-label">Low Stocks</div>
-            <div className="metric-value">{lowStockCount}</div>
+            <div className="metric-value">
+              {lowStockTypes.length > 0 ? (
+                lowStockTypes.map((item, index) => (
+                  <div key={index} style={{ marginBottom: '5px' }}>
+                    <span style={{ fontWeight: 'bold', fontSize: '14px' }}>{item.count}</span> - <span style={{ color: 'red', fontSize: '12px' }}>{item.type}</span>
+                  </div>
+                ))
+              ) : (
+                'None'
+              )}
+            </div>
           </div>
           <div className="metric-icon purple">⚠️</div>
-        </div>
-
-        <div className="metric-card">
-          <div className="metric-info">
-            <div className="metric-label">Out of Stocks</div>
-            <div className="metric-value">{outOfStockCount}</div>
-          </div>
-          <div className="metric-icon red">‼️</div>
         </div>
       </section>
 

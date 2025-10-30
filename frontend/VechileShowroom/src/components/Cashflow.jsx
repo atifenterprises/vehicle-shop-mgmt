@@ -112,7 +112,7 @@ const Cashflow = () => {
             filtered = filtered.filter(c => (c.loanStatus || 'Completed') === selectedStatus);
         }
         if (selectedShopNumber !== 'All') {
-            filtered = filtered.filter(c => c.shopNumber === selectedShopNumber);
+            filtered = filtered.filter(c => c.sale.shopNumber?.toString() === selectedShopNumber);
         }
 
         // Date Range (on saleDate)
@@ -138,6 +138,14 @@ const Cashflow = () => {
     const handleRowClick = (customer) => {
         navigate(`/customers/${customer.customer.customerId}`, { state: { customer, from: 'cashflow' } });
     };
+
+    // Calculate metrics from filteredCashflows
+    const totalSaleOnCash = filteredCashflows.reduce((sum, item) => sum + (item.sale.totalAmount || 0), 0);
+    const receivedAmount = filteredCashflows.reduce((sum, item) => sum + (item.sale.paidAmount || 0), 0);
+    const remainingAmount = filteredCashflows.reduce((sum, item) => sum + (item.sale.remainingAmount || 0), 0);
+    const activeCount = filteredCashflows.filter(item => item.loanStatus === 'Active').length;
+    const closedCount = filteredCashflows.filter(item => item.loanStatus === 'Closed').length;
+    const failedCount = filteredCashflows.filter(item => item.loanStatus === 'Overdue').length; // Assuming overdue as failed
 
     const generateReportHTML = (customers) => {
         const reportDate = new Date().toLocaleDateString();
@@ -186,17 +194,17 @@ const Cashflow = () => {
                 ${customers.map((customer, index) => `
                   <tr>
                     <td>${index + 1}</td>
-                    <td>${customer.customerId || '-'}</td>
-                    <td>${customer.name || '-'}</td>
-                    <td>${customer.address || '-'}</td>
-                    <td>${customer.mobile || '-'}</td>
-                    <td>${customer.saleType || '-'}</td>
-                    <td>${customer.saleDate || '-'}</td>
-                    <td>${customer.shopNumber || '-'}</td>
-                    <td>${customer.totalAmount || '-'}</td>
-                    <td>${customer.downPayment || '0'}</td>
-                    <td>${customer.loanAmount ? customer.loanAmount - customer.downPayment : '-'}</td>
-                    <td>${customer.firstEmiDate || '-'}</td>
+                    <td>${customer.customer.customerId || '-'}</td>
+                    <td>${customer.customer.name || '-'}</td>
+                    <td>${customer.customer.address || '-'}</td>
+                    <td>${customer.customer.mobileNo || '-'}</td>
+                    <td>Cash</td>
+                    <td>${customer.sale.saleDate || '-'}</td>
+                    <td>${customer.sale.shopNumber || '-'}</td>
+                    <td>${customer.sale.totalAmount || '-'}</td>
+                    <td>${customer.sale.paidAmount || '0'}</td>
+                    <td>${customer.sale.remainingAmount || '-'}</td>
+                    <td>${customer.sale.lastpaymentDate || '-'}</td>
                     <td>${customer.loanStatus || 'Completed'}</td>
                   </tr>
                 `).join('')}
@@ -235,21 +243,21 @@ const Cashflow = () => {
                 <div className="metric-card">
                     <div className="metric-info">
                         <div className="metric-label">Total Sale on Cash</div>
-                        <div className="metric-value">₹ 10,50,000</div>
+                        <div className="metric-value">₹{totalSaleOnCash.toLocaleString()}</div>
                     </div>
                     <div className="metric-icon blue">💵</div>
                 </div>
                 <div className="metric-card">
                     <div className="metric-info">
                         <div className="metric-label">Received Amount</div>
-                        <div className="metric-value">₹ 8,50,000</div>
+                        <div className="metric-value">₹{receivedAmount.toLocaleString()}</div>
                     </div>
                     <div className="metric-icon purple">💲</div>
                 </div>
                 <div className="metric-card">
                     <div className="metric-info">
                         <div className="metric-label">Remaining Amount</div>
-                        <div className="metric-value">₹ 1,30,000</div>
+                        <div className="metric-value">₹{remainingAmount.toLocaleString()}</div>
                     </div>
                     <div className="metric-icon green">⌛</div>
                 </div>
@@ -257,21 +265,21 @@ const Cashflow = () => {
                 <div className="metric-card">
                     <div className="metric-info">
                         <div className="metric-label">Active</div>
-                        <div className="metric-value">90</div>
+                        <div className="metric-value">{activeCount}</div>
                     </div>
                     <div className="metric-icon blue">✅</div>
                 </div>
                 <div className="metric-card">
                     <div className="metric-info">
                         <div className="metric-label">Closed</div>
-                        <div className="metric-value">12</div>
+                        <div className="metric-value">{closedCount}</div>
                     </div>
                     <div className="metric-icon blue">✅</div>
                 </div>
                 <div className="metric-card">
                     <div className="metric-info">
                         <div className="metric-label">Failed to Pay on time</div>
-                        <div className="metric-value">11</div>
+                        <div className="metric-value">{failedCount}</div>
                     </div>
                     <div className="metric-icon red">⚠️</div>
                 </div>
@@ -299,9 +307,8 @@ const Cashflow = () => {
                         style={{ marginLeft: '10px', padding: '5px' }}
                     >
                         <option value="All">All Statuses</option>
-                        <option value="Completed">Completed</option>
-                        <option value="Pending">Pending</option>
-                        <option value="Failed">Failed</option>
+                        <option value="Active">Active</option>
+                        <option value="Closed">Closed</option>
                     </select>
                     <select
                         value={selectedShopNumber}
@@ -370,14 +377,14 @@ const Cashflow = () => {
                                     <td>{customer.customer.address || '-'}</td>
                                     <td>{customer.customer.mobileNo || '-'}</td>
                                     {/* <td>{customer.saleType || '-'}</td> */}
-                                    <td>{customer.customer.date || '-'}</td>
+                                    <td>{customer.sale.saleDate || '-'}</td>
                                     <td>{customer.sale.shopNumber || '-'}</td>
                                     <td>{customer.sale.totalAmount || '-'}</td>
                                     <td>{customer.sale.paidAmount || '0'}</td>
                                     {/* <td>{customer.loanAmount ? customer.loanAmount - customer.downPayment : '-'}</td> */}
                                     <td>{customer.sale.remainingAmount || '-'}</td>
                                     <td>{customer.sale.lastpaymentDate || '-'}</td>
-                                    <td>{customer.loanStatus || 'Completed'}</td>
+                                    <td><span className={`status-badge ${customer.loanStatus === 'Active' ? 'status-active' : customer.loanStatus === 'Closed' ? 'status-closed' : customer.loanStatus === 'Overdue' ? 'status-overdue' : ''}`}>{customer.loanStatus ?? customer.status ?? '-'}</span></td>
                                 </tr>
                             ))
                         )}
