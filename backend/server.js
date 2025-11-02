@@ -80,6 +80,115 @@ const mapBatteryToCamelCase = (battery) => {
   };
 };
 
+// Helper function to update EMI statuses in emiSchedule
+const updateEmiStatuses = async (customerId) => {
+  try {
+    // Fetch sale data for the customer
+    const { data: saleData, error: saleError } = await supabase
+      .from('sales')
+      .select('*')
+      .eq('customerId', customerId)
+      .single();
+
+    if (saleError || !saleData) {
+      console.error('Error fetching sale data:', saleError);
+      return;
+    }
+
+    if (saleData.saleType === 'Finance' && saleData.emiSchedule && Array.isArray(saleData.emiSchedule)) {
+      const today = new Date().toISOString().split('T')[0];
+      let updated = false;
+      const updatedEmiSchedule = saleData.emiSchedule.map(emi => {
+        if (emi.status === 'Due' && emi.date < today) {
+          updated = true;
+          return { ...emi, status: 'Overdue', overdueCharges: 650 }; // Assuming fixed overdue charge
+        }
+        return emi;
+      });
+
+      if (updated) {
+        const { error: updateError } = await supabase
+          .from('sales')
+          .update({ emiSchedule: updatedEmiSchedule })
+          .eq('customerId', customerId);
+
+        if (updateError) {
+          console.error('Error updating EMI statuses:', updateError);
+        } else {
+          console.log(`Updated EMI statuses for customer ${customerId}`);
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Error in updateEmiStatuses:', err);
+  }
+};
+
+// Helper function to update loanStatus and salesStatus in sales table
+const updateSaleStatuses = async (customerId) => {
+  try {
+    // First, update EMI statuses
+    await updateEmiStatuses(customerId);
+
+    // Fetch sale data for the customer
+    const { data: saleData, error: saleError } = await supabase
+      .from('sales')
+      .select('*')
+      .eq('customerId', customerId)
+      .single();
+
+    if (saleError || !saleData) {
+      console.error('Error fetching sale data:', saleError);
+      return;
+    }
+
+    let loanStatus = 'Closed';
+    let salesStatus = saleData.salesStatus;
+
+    if (saleData.saleType === 'Finance') {
+      if (saleData.emiSchedule && Array.isArray(saleData.emiSchedule)) {
+        const hasOverdue = saleData.emiSchedule.some(emi => emi.status === 'Overdue');
+        const hasDue = saleData.emiSchedule.some(emi => emi.status === 'Due');
+        const allPaid = saleData.emiSchedule.every(emi => emi.status === 'Paid');
+
+        if (hasOverdue) {
+          loanStatus = 'Overdue';
+        } else if (hasDue) {
+          loanStatus = 'Active';
+        } else {
+          loanStatus = 'Closed';
+        }
+
+        if (allPaid) {
+          salesStatus = 'Closed';
+        } else {
+          salesStatus = 'Active';
+        }
+      }
+    } else if (saleData.saleType === 'Cash') {
+      if (parseFloat(saleData.remainingAmount) === 0) {
+        salesStatus = 'Closed';
+      } else {
+        salesStatus = 'Active'; // Or keep as is, but ensure it's not closed if remaining > 0
+      }
+    }
+
+    // Update the sales table
+    const { error: updateError } = await supabase
+      .from('sales')
+      .update({ salesStatus: loanStatus })
+      .eq('customerId', customerId);
+
+    if (updateError) {
+      console.error('Error updating sale statuses:', updateError);
+    } else {
+      console.log(`Updated statuses for customer ${customerId}: loanStatus=${loanStatus}, salesStatus=${salesStatus}`);
+    }
+  } catch (err) {
+    console.error('Error in updateSaleStatuses:', err);
+  }
+};
+
 // Validation function for vehicle data
 const validateVehicleData = (data, isUpdate = false) => {
   const errors = [];
@@ -271,8 +380,13 @@ app.get("/api/dashboard/metrics", async (req, res) => {
     const { data: customersData, error: customersError } = await supabase.from('customers').select('*');
     if (customersError) throw customersError;
 
+    const { data: salesData, error: salesError } = await supabase.from('sales').select('*');
+    if (salesError) throw salesError;
+    console.log('salesData:', salesData);
+
     const { data: batterySalesData, error: batterySalesError } = await supabase.from('battery_sales').select('*');
     if (batterySalesError) throw batterySalesError;
+    console.log('batterySalesData:', batterySalesData);
 
     // Calculate metrics from data
     const financeCustomers = customersData.filter(c => c.saleType === 'Finance');
@@ -288,14 +402,96 @@ app.get("/api/dashboard/metrics", async (req, res) => {
     const totalCollection = activeLoans.reduce((sum, c) => sum + parseFloat(c.EMIAmount.replace(/,/g, '')), 0);
     const totalCollectionFormatted = `₹${totalCollection.toLocaleString('en-IN')}`;
 
+    // Calculate dynamic changes
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+    const previousMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+    const previousYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+
+    // Current month collection
+    let currentMonthCollection = 0;
+    customersData.filter(c => c.saleType === 'Finance').forEach(customer => {
+      if (customer.emiSchedule && Array.isArray(customer.emiSchedule)) {
+        customer.emiSchedule.forEach(emi => {
+          const emiDate = new Date(emi.date);
+          if (emiDate.getMonth() === currentMonth && emiDate.getFullYear() === currentYear && emi.status === 'Paid') {
+            currentMonthCollection += parseFloat(emi.amount);
+          }
+        });
+      }
+    });
+    batterySalesData.forEach(b => {
+      const saleDate = new Date(b.saleDate);
+      if (saleDate.getMonth() === currentMonth && saleDate.getFullYear() === currentYear) {
+        currentMonthCollection += b.totalAmount;
+      }
+    });
+
+    // Previous month collection
+    let previousMonthCollection = 0;
+    customersData.filter(c => c.saleType === 'Finance').forEach(customer => {
+      if (customer.emiSchedule && Array.isArray(customer.emiSchedule)) {
+        customer.emiSchedule.forEach(emi => {
+          const emiDate = new Date(emi.date);
+          if (emiDate.getMonth() === previousMonth && emiDate.getFullYear() === previousYear && emi.status === 'Paid') {
+            previousMonthCollection += parseFloat(emi.amount);
+          }
+        });
+      }
+    });
+    batterySalesData.forEach(b => {
+      const saleDate = new Date(b.saleDate);
+      if (saleDate.getMonth() === previousMonth && saleDate.getFullYear() === previousYear) {
+        previousMonthCollection += b.totalAmount;
+      }
+    });
+
+    const totalCollectionChange = previousMonthCollection > 0 ? `${Math.round(((currentMonthCollection - previousMonthCollection) / previousMonthCollection) * 100)}%` : (currentMonthCollection > 0 ? "+100%" : "0%");
+
+    // Current month new loans
+    const currentMonthLoans = customersData.filter(c => c.saleType === 'Finance' && new Date(c.saleDate).getMonth() === currentMonth && new Date(c.saleDate).getFullYear() === currentYear).length;
+    const previousTotalLoans = totalLoans - currentMonthLoans;
+    const totalLoansChange = previousTotalLoans > 0 ? `+${Math.round((currentMonthLoans / previousTotalLoans) * 100)}%` : (currentMonthLoans > 0 ? "+100%" : "0%");
+
+    // Calculate current month sales
+    let currentMonthSales = 0;
+    salesData.filter(s => s.saleType === 'Finance' || s.saleType === 'Cash').forEach(sale => {
+      const saleDate = new Date(sale.saleDate);
+      if (saleDate.getMonth() === currentMonth && saleDate.getFullYear() === currentYear) {
+        currentMonthSales += parseFloat(sale.totalAmount);
+      }
+    });
+    batterySalesData.forEach(b => {
+      const saleDate = new Date(b.saleDate);
+      if (saleDate.getMonth() === currentMonth && saleDate.getFullYear() === currentYear) {
+        currentMonthSales += b.totalAmount;
+      }
+    });
+
+    // Calculate previous month sales
+    let previousMonthSales = 0;
+    salesData.filter(s => s.saleType === 'Finance' || s.saleType === 'Cash').forEach(sale => {
+      const saleDate = new Date(sale.saleDate);
+      if (saleDate.getMonth() === previousMonth && saleDate.getFullYear() === previousYear) {
+        previousMonthSales += parseFloat(sale.totalAmount);
+      }
+    });
+    batterySalesData.forEach(b => {
+      const saleDate = new Date(b.saleDate);
+      if (saleDate.getMonth() === previousMonth && saleDate.getFullYear() === previousYear) {
+        previousMonthSales += b.totalAmount;
+      }
+    });
+
+    const totalSalesChange = previousMonthSales > 0 ? `${Math.round(((currentMonthSales - previousMonthSales) / previousMonthSales) * 100)}%` : (currentMonthSales > 0 ? "+100%" : "0%");
+
     // New metrics
-    const totalSales = financeCustomers.length + cashCustomers.length;
+    const totalSales = currentMonthSales;
     const cashSalesCount = cashCustomers.length;
     const cashSalesAmount = cashCustomers.reduce((sum, c) => sum + parseFloat(c.totalAmount.replace(/,/g, '')), 0);
     const batterySalesCount = batterySalesData.length;
     const batterySalesAmount = batterySalesData.reduce((sum, b) => sum + b.totalAmount, 0);
-    const totalRevenue = financeCustomers.reduce((sum, c) => sum + parseFloat(c.totalAmount.replace(/,/g, '')), 0) +
-      cashSalesAmount + batterySalesAmount;
+    const totalRevenue = totalSales;
 
     res.json({
       totalLoans,
@@ -303,11 +499,12 @@ app.get("/api/dashboard/metrics", async (req, res) => {
       overduePayments: overduePaymentsCount,
       totalCollection,
       totalCollectionFormatted,
-      totalLoansChange: "+12%", // Keep static for now
+      totalLoansChange,
       activeLoansRate: totalLoans > 0 ? `${Math.round((activeLoansCount / totalLoans) * 100)}%` : "0%",
       overduePaymentsNote: overduePaymentsCount > 0 ? "Requires attention" : "All good",
-      totalCollectionChange: "+8%", // Keep static
+      totalCollectionChange,
       totalSales,
+      totalSalesChange,
       cashSalesCount,
       cashSalesAmount,
       batterySalesCount,
@@ -322,23 +519,30 @@ app.get("/api/dashboard/metrics", async (req, res) => {
 // API endpoint for monthly collection trend
 app.get("/api/dashboard/monthly-collection", async (req, res) => {
   try {
-    const { data: customersData, error: customersError } = await supabase.from('customers').select('*');
-    if (customersError) throw customersError;
+    const { data: salesData, error: salesError } = await supabase.from('sales').select('*');
+    if (salesError) throw salesError;
 
     const { data: batterySalesData, error: batterySalesError } = await supabase.from('battery_sales').select('*');
     if (batterySalesError) throw batterySalesError;
 
-    // Aggregate EMI collections by month from finance customers
-    const emiMonthly = {};
-    customersData.filter(c => c.saleType === 'Finance').forEach(customer => {
-      if (customer.emiSchedule && Array.isArray(customer.emiSchedule)) {
-        customer.emiSchedule.forEach(emi => {
+    // Aggregate EMI collections by month from finance sales
+    const financeMonthly = {};
+    salesData.filter(s => s.saleType === 'Finance').forEach(sale => {
+      if (sale.emiSchedule && Array.isArray(sale.emiSchedule)) {
+        sale.emiSchedule.forEach(emi => {
           if (emi.status === 'Paid') {
             const month = new Date(emi.date).getMonth();
-            emiMonthly[month] = (emiMonthly[month] || 0) + parseFloat(emi.amount);
+            financeMonthly[month] = (financeMonthly[month] || 0) + parseFloat(emi.amount);
           }
         });
       }
+    });
+
+    // Aggregate cash sales by month
+    const cashMonthly = {};
+    salesData.filter(s => s.saleType === 'Cash').forEach(sale => {
+      const month = new Date(sale.saleDate).getMonth();
+      cashMonthly[month] = (cashMonthly[month] || 0) + parseFloat(sale.totalAmount);
     });
 
     // Aggregate battery sales by month
@@ -350,12 +554,11 @@ app.get("/api/dashboard/monthly-collection", async (req, res) => {
 
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-    // Combine EMI and battery sales collections
-    const collection = months.map((_, idx) => (emiMonthly[idx] || 0) + (batteryMonthly[idx] || 0));
-
     res.json({
       months,
-      collection
+      finance: months.map((_, idx) => financeMonthly[idx] || 0),
+      cash: months.map((_, idx) => cashMonthly[idx] || 0),
+      battery: months.map((_, idx) => batteryMonthly[idx] || 0)
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -411,7 +614,7 @@ app.post('/api/sales', async (req, res) => {
     const vehicleData = {
       vehicleNumber: formData.vehicleNumber,
       engineNumber: formData.engineNumber,
-      make: formData.make,
+      make: formData.make, 
       model: formData.model,
       chassisNumber: formData.chassisNumber,
       batterySerialNumber: formData.batterySerialNumber || '', // Fallback to '' if not provided
@@ -462,7 +665,7 @@ app.post('/api/sales', async (req, res) => {
         saleData.loanAmount = parseFloat(formData.loanAmount),
         saleData.tenure = parseInt(formData.tenure),
         saleData.interestRate = parseFloat(formData.interestRate),
-        saleData.firstEMIDate = formData.firstEMIDate,
+        saleData.firstEMIDate = formData.firstEmiDate,
         saleData.EMIAmount = parseFloat(formData.EMIAmount),
         saleData.emiSchedule = (formData.emiSchedule && Array.isArray(formData.emiSchedule)) ? formData.emiSchedule.map(emi => ({
           date: emi.date,
@@ -479,11 +682,13 @@ app.post('/api/sales', async (req, res) => {
     }
 
     // Call the PostgreSQL function
-    const { data, error } = await supabase.rpc('insert_sale_transaction', {
+    const rpcParams = {
       p_customer_data: customerData,
       p_vehicle_data: vehicleData,
       p_sale_data: saleData,
-    });
+    };
+
+    const { data, error } = await supabase.rpc('insert_sale_transaction', rpcParams);
 
     if (error) {
       throw new Error(`Transaction Failed : ${error.message}`);
@@ -541,27 +746,56 @@ app.get("/api/dashboard/sales-by-type", async (req, res) => {
 // API endpoint for recent payments
 app.get("/api/dashboard/recent-payments", async (req, res) => {
   try {
+    const { data: salesData, error: salesError } = await supabase.from('sales').select('*');
+    if (salesError) throw salesError;
+
     const { data: customersData, error: customersError } = await supabase.from('customers').select('*');
     if (customersError) throw customersError;
 
     const { data: batterySalesData, error: batterySalesError } = await supabase.from('battery_sales').select('*');
     if (batterySalesError) throw batterySalesError;
 
+    const customerMap = customersData.reduce((map, c) => {
+      map[c.customerId] = c.name;
+      return map;
+    }, {});
+
     const payments = [];
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();
 
-    // From finance customers: use saleDate as payment date, assume paid
-    customersData.filter(c => c.saleType === 'Finance').forEach(c => {
-      const paymentDate = new Date(c.saleDate);
+    // From finance sales: include if any EMI is paid, and saleDate in current month
+    salesData.filter(s => s.saleType === 'Finance').forEach(s => {
+      const paymentDate = new Date(s.saleDate);
       if (paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear) {
-        payments.push({
-          customer: c.name,
-          loanNo: c.loanNumber,
-          amount: c.EMIAmount,
-          date: c.saleDate,
-          status: 'Paid'
-        });
+        if (s.emiSchedule && Array.isArray(s.emiSchedule)) {
+          const hasAnyPaid = s.emiSchedule.some(emi => emi.status === 'Paid');
+          if (hasAnyPaid) {
+            payments.push({
+              customer: customerMap[s.customerId],
+              loanNo: s.loanNumber,
+              amount: s.EMIAmount,
+              date: s.saleDate,
+              status: 'Paid'
+            });
+          }
+        }
+      }
+    });
+
+    // From cash sales: include if partially paid (paidAmount > 0), and saleDate in current month
+    salesData.filter(s => s.saleType === 'Cash').forEach(s => {
+      const paymentDate = new Date(s.saleDate);
+      if (paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear) {
+        if (parseFloat(s.paidAmount) > 0) {
+          payments.push({
+            customer: customerMap[s.customerId],
+            loanNo: null,
+            amount: s.totalAmount,
+            date: s.saleDate,
+            status: 'Paid'
+          });
+        }
       }
     });
 
@@ -592,27 +826,60 @@ app.get("/api/dashboard/recent-payments", async (req, res) => {
 // API endpoint for upcoming payments
 app.get("/api/dashboard/upcoming-payments", async (req, res) => {
   try {
+    const { data: salesData, error: salesError } = await supabase.from('sales').select('*');
+    if (salesError) throw salesError;
+
     const { data: customersData, error: customersError } = await supabase.from('customers').select('*');
     if (customersError) throw customersError;
+
+    const customerMap = customersData.reduce((map, c) => {
+      map[c.customerId] = c.name;
+      return map;
+    }, {});
+
+    // Update statuses for all sales before fetching
+    for (const sale of salesData) {
+      await updateSaleStatuses(sale.customerId);
+    }
+
     const upcoming = [];
     const today = new Date();
-    const fiveDaysLater = new Date(today);
-    fiveDaysLater.setDate(today.getDate() + 5);
 
-    // Finance customers with due EMIs within next 5 days
-    customersData.filter(c => c.saleType === 'Finance').forEach(customer => {
-      if (customer.emiSchedule && Array.isArray(customer.emiSchedule)) {
-        customer.emiSchedule.filter(emi => emi.status === 'Due').forEach(emi => {
+    // Finance sales with due EMIs where dueDate is within 5 days from current date
+    salesData.filter(s => s.saleType === 'Finance').forEach(sale => {
+      if (sale.emiSchedule && Array.isArray(sale.emiSchedule)) {
+        sale.emiSchedule.filter(emi => emi.status === 'Due').forEach(emi => {
           const dueDate = new Date(emi.date);
-          if (dueDate >= today && dueDate <= fiveDaysLater) {
+          const fiveDaysFromNow = new Date(today);
+          fiveDaysFromNow.setDate(today.getDate() + 5);
+          if (dueDate >= today && dueDate <= fiveDaysFromNow) {
             upcoming.push({
-              customer: customer.name,
-              loanNo: customer.loanNumber,
+              customerID: sale.customerId,
+              customer: customerMap[sale.customerId],
+              loanNo: sale.loanNumber,
               amount: emi.amount,
               dueDate: emi.date
             });
           }
         });
+      }
+    });
+
+    // Cash sales with lastpaymentDate within 5 days from current date and remainingAmount > 0
+    salesData.filter(s => s.saleType === 'Cash').forEach(sale => {
+      if (sale.lastpaymentDate && parseFloat(sale.remainingAmount) > 0) {
+        const lastPaymentDate = new Date(sale.lastpaymentDate);
+        const fiveDaysFromNow = new Date(today);
+        fiveDaysFromNow.setDate(today.getDate() + 5);
+        if (lastPaymentDate >= today && lastPaymentDate <= fiveDaysFromNow) {
+          upcoming.push({
+            customerID: sale.customerId,
+            customer: customerMap[sale.customerId],
+            loanNo: null,
+            amount: sale.remainingAmount,
+            dueDate: sale.lastpaymentDate
+          });
+        }
       }
     });
 
@@ -625,13 +892,30 @@ app.get("/api/dashboard/upcoming-payments", async (req, res) => {
 // API endpoint for due payments
 app.get("/api/dashboard/due-payments", async (req, res) => {
   try {
-    const { data: customersData, error: customersError } = await supabase.from('customers').select('*');
+    const { data: customersData, error: customersError } = await supabase.from('customers').select('customerId, name');
     if (customersError) throw customersError;
+
+    const { data: salesData, error: salesError } = await supabase.from('sales').select('*');
+    if (salesError) throw salesError;
+
+    // Create customer map
+    const customerMap = customersData.reduce((map, c) => {
+      map[c.customerId] = c.name;
+      return map;
+    }, {});
+
+    // Update statuses for all sales before fetching dues
+    for (const sale of salesData) {
+      await updateSaleStatuses(sale.customerId);
+    }
+
     const dues = [];
-    // Finance customers
-    customersData.filter(c => c.saleType === 'Finance').forEach(c => {
-      if (c.emiSchedule && Array.isArray(c.emiSchedule)) {
-        const overdueEmis = c.emiSchedule.filter(emi => emi.status === 'Overdue');
+    const today = new Date().toISOString().split('T')[0];
+
+    // Finance sales
+    salesData.filter(s => s.saleType === 'Finance').forEach(s => {
+      if (s.emiSchedule && Array.isArray(s.emiSchedule)) {
+        const overdueEmis = s.emiSchedule.filter(emi => emi.status === 'Overdue');
         if (overdueEmis.length > 0) {
           // Calculate bucket: count of overdue EMIs and total overdue amount
           let overdueCount = overdueEmis.length;
@@ -642,15 +926,36 @@ app.get("/api/dashboard/due-payments", async (req, res) => {
             return emiDate < earliest ? emiDate : earliest;
           }, new Date(overdueEmis[0].date));
           dues.push({
-            customer: c.name,
-            loanNo: c.loanNumber,
-            amount: c.EMIAmount,
+            customerID: s.customerId,
+            customerName: customerMap[s.customerId],
+            loanNo: s.loanNumber,
+            numberOfEmi: s.tenure,
+            totalAmount: s.totalAmount,
+            amount: s.EMIAmount,
             dueDate: earliestOverdueDate.toISOString().split('T')[0],
             type: 'EMI',
             bucketCount: overdueCount,
             bucketAmount: totalOverdueAmount
           });
         }
+      }
+    });
+
+    // Cash sales with overdue payments
+    salesData.filter(s => s.saleType === 'Cash').forEach(s => {
+      if (s.lastpaymentDate && s.lastpaymentDate < today && parseFloat(s.remainingAmount) > 0) {
+        dues.push({
+          customerID: s.customerId,
+          customerName: customerMap[s.customerId],
+          loanNo: null,
+          numberOfEmi: null,
+          totalAmount: s.totalAmount,
+          amount: s.remainingAmount,
+          dueDate: s.lastpaymentDate,
+          type: 'Cash',
+          bucketCount: null,
+          bucketAmount: s.remainingAmount
+        });
       }
     });
 
@@ -706,8 +1011,8 @@ const generateEmiSchedule = (firstEmiDate, tenure, emiAmount, loanAmount) => {
     balance -= principal;
     if (balance < 0) balance = 0;
 
-    let status = 'due';
-    if (dateStr < today) status = 'overdue';
+    let status = 'Due';
+    if (dateStr < today) status = 'Overdue';
 
     schedule.push({
       emiNo: i + 1,
@@ -717,7 +1022,7 @@ const generateEmiSchedule = (firstEmiDate, tenure, emiAmount, loanAmount) => {
       amount: emiAmt,
       balance: balance,
       bucket: 'Current',
-      overdueCharges: status === 'overdue' ? 650 : 0,
+      overdueCharges: status === 'Overdue' ? 650 : 0,
       status: status
     });
   }
@@ -813,6 +1118,26 @@ app.get("/api/customers/:id", async (req, res) => {
     if (salesError && salesError.code !== 'PGRST116') {
       // PGRST116 is the error code for "no rows found" in Supabase
       throw salesError;
+    }
+
+    // Apply interest for cash sales if lastpaymentDate has passed and remainingAmount > 0
+    if (sales && sales.saleType === 'Cash' && sales.lastpaymentDate && sales.remainingAmount > 0) {
+      const today = new Date().toISOString().split('T')[0];
+      if (sales.lastpaymentDate < today) {
+        const newRemainingAmount = parseFloat(sales.remainingAmount) * 1.175;
+        // Update the database with new remainingAmount and set lastpaymentDate to future to prevent repeat
+        const { error: updateError } = await supabase
+          .from('sales')
+          .update({ remainingAmount: newRemainingAmount, lastpaymentDate: '2099-01-01' })
+          .eq('customerId', req.params.id);
+        if (updateError) {
+          console.error('Error updating interest:', updateError);
+        } else {
+          // Update the local sales object for response
+          sales.remainingAmount = newRemainingAmount;
+          sales.lastpaymentDate = '2099-01-01';
+        }
+      }
     }
 
     // Fetch Vehicle data
@@ -1010,6 +1335,7 @@ app.put('/api/customers/:customerId', async (req, res) => {
         p_sale_date: reqObj.saleDate,
         p_first_emi_date: reqObj.firstEMIDate || null,
         p_emi_amount: parseFloat(reqObj.EMIAmount) || 0,
+        p_interest_rate: parseFloat(reqObj.interestRate) || 0,
         p_emi_schedule: reqObj.emiSchedule || null
       };
     } else {

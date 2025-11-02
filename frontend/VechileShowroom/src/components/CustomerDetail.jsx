@@ -51,6 +51,7 @@ const CustomerDetail = () => {
     salesStatus: '',
     nextEmiDate: '',
     promisedPaymentDate: '',
+    interest: 0,
   });
 
   const [loading, setLoading] = useState(false);
@@ -97,7 +98,6 @@ const CustomerDetail = () => {
         saleType: data.sales?.saleType || '',
         shopNumber: data.sales?.shopNumber ? data.sales.shopNumber.toString() : '',
         loanNumber: data.sales?.loanNumber || '',
-        sanctionAmount: '', // Not in API response; set to empty or fetch from elsewhere
         totalAmount: data.sales?.totalAmount ? data.sales.totalAmount.toString() : '',
         paidAmount: data.sales?.paidAmount ? data.sales.paidAmount.toString() : '',
         downPayment: data.sales?.downPayment ? data.sales.downPayment.toString() : '',
@@ -109,8 +109,11 @@ const CustomerDetail = () => {
         emiSchedule: data.sales?.emiSchedule && Array.isArray(data.sales.emiSchedule) ? updateBuckets(data.sales.emiSchedule) : [],
         salesStatus: data.summary?.loanStatus || '',
         nextEmiDate: data.summary?.nextEmiDate || '',
-        promisedPaymentDate: '', // Not in API response; set to empty or fetch from elsewhere
+        promisedPaymentDate: data.sales?.lastpaymentDate || '',
+        interest: 0,
       });
+      console.log('Interest Rate from API:', data.sales?.interestRate);
+      console.log('Full sales data:', data.sales);
 
 
 
@@ -132,6 +135,18 @@ const CustomerDetail = () => {
       setCustomer(customerFromState);
     }
   }, [customerFromState, id]);
+
+  // Calculate promised payment date for cash sales if missing
+  useEffect(() => {
+    if (customer.saleType?.toLowerCase() === 'cash' && !customer.promisedPaymentDate && customer.saleDate) {
+      const saleDate = new Date(customer.saleDate);
+      const interestRate = 17.5; // 17.5% interest rate
+      const daysToAdd = Math.ceil((parseFloat(customer.totalAmount) - parseFloat(customer.paidAmount)) * interestRate / 100 / 365);
+      const promisedDate = new Date(saleDate);
+      promisedDate.setDate(promisedDate.getDate() + daysToAdd);
+      setCustomer(prev => ({ ...prev, promisedPaymentDate: promisedDate.toISOString().split('T')[0] }));
+    }
+  }, [customer.saleType, customer.saleDate, customer.totalAmount, customer.paidAmount, customer.promisedPaymentDate]);
 
   // Generate EMI schedule when loanAmount, tenure, interestRate, firstEmiDate change
   useEffect(() => {
@@ -329,10 +344,10 @@ const CustomerDetail = () => {
         backButtonText: 'Back to Sales & Cash',
         backButtonRoute: '/cashflows'
       };
-    } else {
+    } else if (from === 'loan-repayments') {
       return {
-        backButtonText: 'Back to Customers',
-        backButtonRoute: '/customers'
+        backButtonText: 'Back to Loan Repayments',
+        backButtonRoute: '/loan-repayments'
       };
     }
   };
@@ -511,10 +526,12 @@ const CustomerDetail = () => {
           Sale Type:
           <input type="text" name="saleType" value={customer.saleType} onChange={handleChange} />
         </label>
-        <label>
-          Shop Number:
-          <input type="text" name="shopNumber" value={customer.shopNumber} onChange={handleChange} />
-        </label>
+        {customer.saleType?.toLowerCase() !== 'finance' && (
+          <label>
+            Shop Number:
+            <input type="text" name="shopNumber" value={customer.shopNumber} onChange={handleChange} />
+          </label>
+        )}
 
         {/* Finance Sale Fields */}
         {fieldConfig.showFinanceFields && (
@@ -524,8 +541,8 @@ const CustomerDetail = () => {
               <input type="text" name="loanNumber" value={customer.loanNumber} onChange={handleChange} />
             </label>
             <label>
-              Sanction Amount:
-              <input type="number" name="sanctionAmount" value={customer.sanctionAmount} onChange={handleChange} />
+              Total Amount:
+              <input type="number" name="totalAmount" value={customer.totalAmount} onChange={handleChange} />
             </label>
             <label>
               Down Payment:

@@ -18,8 +18,25 @@ const Customer = () => {
       }
       const data = await response.json();
       console.log('Fetched customers:', data);
-      setCustomers(data);
-      setFilteredCustomers(data);
+
+      // Handle both flat and nested data formats
+      const customers = data.map(item => {
+        if (item.customer) {
+          // Nested format: { customer, vehicle, sales, summary }
+          return {
+            ...item.customer,
+            loanNumber: item.sales?.loanNumber || '',
+            loanStatus: item.summary?.loanStatus || '',
+            // Add other fields from nested structure if needed
+          };
+        } else {
+          // Flat format: direct customer object
+          return item;
+        }
+      });
+
+      setCustomers(customers);
+      setFilteredCustomers(customers);
     } catch (err) {
       console.error(err);
     }

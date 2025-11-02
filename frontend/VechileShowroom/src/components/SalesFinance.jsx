@@ -62,17 +62,20 @@ const SalesFinance = () => {
           const bucket = sale.emiSchedule ? sale.emiSchedule.filter(emi => emi.status === 'Overdue').length : 0;
           // Calculate overdueCharges: sum of overdue charges
           const overdueCharges = sale.emiSchedule ? sale.emiSchedule.reduce((sum, emi) => sum + (emi.status === 'Overdue' ? (emi.overdueCharges || 0) : 0), 0) : 0;
+          // Calculate payableAmount based on loanStatus
+          const monthlyEMI = sale.EMIAmount ?? 0;
+          const payableAmount = loanStatus === 'Overdue' ? (monthlyEMI * bucket) + overdueCharges : monthlyEMI;
           return {
             customer: c.customer,
             sale,
             vehicle,
             // Derived fields
-            monthlyEMI: sale.EMIAmount ?? 0,
+            monthlyEMI,
             nextEmiDate: sale.firstEMIDate ?? null,
             loanStatus,
             bucket,
             overdueCharges,
-            payableAmount: sale.remainingAmount ?? 0,
+            payableAmount,
           };
         })
       );
@@ -115,11 +118,32 @@ const SalesFinance = () => {
     setDateRange({ from: '', to: '' });
   };
 
+  // Helper to check if date is in current month
+  const isCurrentMonth = (dateStr) => {
+    if (!dateStr) return false;
+    const date = new Date(dateStr);
+    const now = new Date();
+    return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+  };
+
   // Stats calculations from filteredCustomers
-  const totalLoansAmount = filteredCustomers.reduce((sum, item) => sum + (item.sale.loanAmount || 0), 0);
-  const totalReceivedAmount = filteredCustomers.reduce((sum, item) => sum + ((item.sale.loanAmount || 0) - (item.sale.remainingAmount || 0)), 0);
-  const totalRemainingAmount = filteredCustomers.reduce((sum, item) => sum + (item.sale.remainingAmount || 0), 0);
-  const totalCustomers = filteredCustomers.length;
+  const totalLoansAmount = filteredCustomers
+    .filter(item => item.loanStatus !== 'Closed')
+    .reduce((sum, item) => sum + (item.sale.loanAmount || 0), 0);
+
+  const totalReceivedAmount = filteredCustomers
+    .filter(item => item.loanStatus !== 'Closed')
+    .flatMap(item => item.sale.emiSchedule || [])
+    .filter(emi => emi.status === 'Paid' && isCurrentMonth(emi.date))
+    .reduce((sum, emi) => sum + (emi.amount || 0), 0);
+
+  const totalRemainingAmount = totalLoansAmount - totalReceivedAmount;
+
+  const totalCustomers = new Set(
+    filteredCustomers
+      .filter(item => item.loanStatus === 'Active')
+      .map(item => item.customer.customerId)
+  ).size;
   const activeLoans = filteredCustomers.filter(item => item.loanStatus === 'Active').length;
   const overduePayments = filteredCustomers.filter(item => item.loanStatus === 'Overdue').length;
   const closedLoans = filteredCustomers.filter(item => item.loanStatus === 'Closed').length;
@@ -136,7 +160,7 @@ const SalesFinance = () => {
       const now = new Date();
       return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
     })
-    .reduce((sum, item) => sum + (item.sale.loanAmount || 0), 0);
+    .reduce((sum, item) => sum + (item.sale.totalAmount || 0), 0);
 
   const handleRowClick = (customer) => {
     navigate(`/customers/${customer.customer.customerId}`, { state: { customer, from: 'sales-finance' } });
@@ -176,7 +200,7 @@ const SalesFinance = () => {
               <th>Phone Number</th>
               <th>Loan Number</th>
               <th>Chassis Number</th>
-              <th>Ex-Showroom Price</th>
+              <th>Total Amount</th>
               <th>Loan Amount</th>
               <th>Montly EMI</th>
               <th>Bucket(No. of Overdues)</th>
@@ -195,7 +219,7 @@ const SalesFinance = () => {
                 <td>${customer.customer.mobileNo ?? '-'}</td>
                 <td>${customer.sale.loanNumber ?? '-'}</td>
                 <td>${customer.vehicle.chassisNumber ?? '-'}</td>
-                <td>${customer.vehicle.exShowroomPrice ?? '-'}</td>
+                <td>${customer.sale.totalAmount ?? '-'}</td>
                 <td>${customer.sale.loanAmount ?? '-'}</td>
                 <td>${customer.monthlyEMI ?? '-'}</td>
                 <td>${customer.bucket ?? 0}</td>
@@ -247,7 +271,7 @@ const SalesFinance = () => {
         </div>
         <div className="metric-card">
           <div className="metric-info">
-            <div className="metric-label">Total Received Amount</div>
+            <div className="metric-label">Montly Collection</div>
             <div className="metric-value">₹{totalReceivedAmount.toLocaleString()}</div>
           </div>
           <div className="metric-icon blue">🪙</div>
@@ -261,7 +285,7 @@ const SalesFinance = () => {
         </div>
         <div className="metric-card">
           <div className="metric-info">
-            <div className="metric-label">Total Loans</div>
+            <div className="metric-label">Total Active Customers</div>
             <div className="metric-value">{totalCustomers}</div>
           </div>
           <div className="metric-icon red">👁️‍🗨️</div>
@@ -353,7 +377,7 @@ const SalesFinance = () => {
               <th>Phone Number</th>
               <th>Loan Number</th>
               <th>Chassis Number</th>
-              <th>Ex-Showroom Price</th>
+              <th>Total Amount</th>
               <th>Loan Amount</th>
               <th>Montly EMI</th>
               <th>Bucket(No. of Overdues)</th>
@@ -377,7 +401,7 @@ const SalesFinance = () => {
                   <td>{customer.customer.mobileNo}</td>
                   <td>{customer.sale.loanNumber}</td>
                   <td>{customer.vehicle.chassisNumber}</td>
-                  <td>{customer.vehicle.exShowroomPrice }</td>
+                  <td>{customer.sale.totalAmount}</td>
                   <td>{customer.sale.loanAmount}</td>
                   <td>{customer.monthlyEMI ?? customer.monthly_emi ?? customer.emi}</td>
                   <td>{customer.bucket ?? customer.overdueCount ?? 0}</td>

@@ -114,11 +114,32 @@ const LoanRepayments = () => {
     setDateRange({ from: '', to: '' });
   };
 
+  // Helper to check if date is in current month
+  const isCurrentMonth = (dateStr) => {
+    if (!dateStr) return false;
+    const date = new Date(dateStr);
+    const now = new Date();
+    return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+  };
+
   // Stats calculations from filteredCustomers
-  const totalLoansAmount = filteredCustomers.reduce((sum, item) => sum + (item.sale.loanAmount || 0), 0);
-  const totalReceivedAmount = filteredCustomers.reduce((sum, item) => sum + ((item.sale.loanAmount || 0) - (item.sale.remainingAmount || 0)), 0);
-  const totalRemainingAmount = filteredCustomers.reduce((sum, item) => sum + (item.sale.remainingAmount || 0), 0);
-  const totalCustomers = filteredCustomers.length;
+  const totalLoansAmount = filteredCustomers
+    .filter(item => item.loanStatus !== 'Closed')
+    .reduce((sum, item) => sum + (item.sale.loanAmount || 0), 0);
+
+  const totalReceivedAmount = filteredCustomers
+    .filter(item => item.loanStatus !== 'Closed')
+    .flatMap(item => item.sale.emiSchedule || [])
+    .filter(emi => emi.status === 'Paid' && isCurrentMonth(emi.date))
+    .reduce((sum, emi) => sum + (emi.amount || 0), 0);
+
+  const totalRemainingAmount = totalLoansAmount - totalReceivedAmount;
+
+  const totalCustomers = new Set(
+    filteredCustomers
+      .filter(item => item.loanStatus === 'Active')
+      .map(item => item.customer.customerId)
+  ).size;
   const activeLoans = filteredCustomers.filter(item => item.loanStatus === 'Active').length;
   const overduePayments = filteredCustomers.filter(item => item.loanStatus === 'Overdue').length;
   const closedLoans = filteredCustomers.filter(item => item.loanStatus === 'Closed').length;
@@ -131,7 +152,7 @@ const LoanRepayments = () => {
 
   const handleRowClick = (customer) => {
     console.log('Handlerroclick : ', customer);
-    navigate(`/customers/${customer.customerId}`, { state: { customer, from: 'sales-finance' } });
+    navigate(`/customers/${customer.customerId}`, { state: { customer, from: 'loan-repayments' } });
   };
 
   const generateReportHTML = (customers) => {
@@ -179,24 +200,30 @@ const LoanRepayments = () => {
             </tr>
           </thead>
           <tbody>
-            ${customers.map((item, index) => `
-              <tr>
-                <td>${index + 1}</td>
-                <td>${item.sale.loanNumber ?? '-'}</td>
-                <td>${item.customer.name ?? '-'}</td>
-                <td>${item.customer.mobileNo ?? '-'}</td>
-                <td>${item.sale.loanAmount ?? 0}</td>
-                <td>${item.sale.emiNumber ?? 0}</td>
-                <td>${item.monthlyEMI}</td>
-                <td>${item.bucket}</td>
-                <td>${item.overdueCharges}</td>
-                <td>${item.payableAmount}</td>
-                <td>${(item.sale.loanAmount ?? 0) - (item.sale.remainingAmount ?? 0)}</td>
-                <td>${item.sale.remainingAmount ?? 0}</td>
-                <td>${item.loanStatus}</td>
-                <td>${item.nextEmiDate ?? '-'}</td>
-              </tr>
-            `).join('')}
+            ${customers.map((item, index) => {
+              const paidEmisCount = item.sale.emiSchedule
+                ? item.sale.emiSchedule.filter(emi => emi.status === 'Paid').length
+                : 0;
+              const currentEmiNumber = item.loanStatus === 'Closed' ? (item.sale.emiNumber ?? 0) : paidEmisCount + 1;
+              return `
+                <tr>
+                  <td>${index + 1}</td>
+                  <td>${item.sale.loanNumber ?? '-'}</td>
+                  <td>${item.customer.name ?? '-'}</td>
+                  <td>${item.customer.mobileNo ?? '-'}</td>
+                  <td>${item.sale.loanAmount ?? 0}</td>
+                  <td>${currentEmiNumber}</td>
+                  <td>${item.monthlyEMI}</td>
+                  <td>${item.bucket}</td>
+                  <td>${item.overdueCharges}</td>
+                  <td>${item.payableAmount}</td>
+                  <td>${(item.sale.loanAmount ?? 0) - (item.sale.remainingAmount ?? 0)}</td>
+                  <td>${item.sale.remainingAmount ?? 0}</td>
+                  <td>${item.loanStatus}</td>
+                  <td>${item.nextEmiDate ?? '-'}</td>
+                </tr>
+              `;
+            }).join('')}
           </tbody>
         </table>
       </body>
@@ -239,7 +266,7 @@ const LoanRepayments = () => {
         </div>
         <div className="metric-card">
           <div className="metric-info">
-            <div className="metric-label">Total Received Amount</div>
+            <div className="metric-label">Montly Collections</div>
             <div className="metric-value">₹{totalReceivedAmount.toLocaleString()}</div>
           </div>
           <div className="metric-icon blue">🪙</div>
@@ -354,24 +381,34 @@ const LoanRepayments = () => {
                 <td colSpan="14" className="no-data">No customers found.</td>
               </tr>
             ) : (
-              filteredCustomers.map((item, index) => (
-                <tr key={item.sale.id ?? index} onClick={() => handleRowClick(item.customer)} style={{ cursor: 'pointer' }}>
-                  <td>{index + 1}</td>
-                  <td>{item.sale.loanNumber ?? '-'}</td>
-                  <td>{item.customer.name ?? '-'}</td>
-                  <td>{item.customer.mobileNo ?? '-'}</td>
-                  <td>{item.sale.loanAmount ?? 0}</td>
-                  <td>{item.sale.emiNumber ?? 0}</td>
-                  <td>{item.monthlyEMI}</td>
-                  <td>{item.bucket}</td>
-                  <td>{item.overdueCharges}</td>
-                  <td>{item.payableAmount}</td>
-                  <td>{(item.sale.loanAmount ?? 0) - (item.sale.remainingAmount ?? 0)}</td>
-                  <td>{item.sale.remainingAmount ?? 0}</td>
-                  <td><span className={`status-badge ${item.loanStatus === 'Active' ? 'status-active' : item.loanStatus === 'Closed' ? 'status-closed' : item.loanStatus === 'Overdue' ? 'status-overdue' : ''}`}>{item.loanStatus}</span></td>
-                  <td>{item.nextEmiDate ?? '-'}</td>
-                </tr>
-              ))
+              filteredCustomers.map((item, index) => {
+                const totalPaid = item.sale.emiSchedule
+                  ? item.sale.emiSchedule.filter(emi => emi.status === 'Paid').reduce((sum, emi) => sum + (emi.amount || 0), 0)
+                  : 0;
+                const totalRemaining = (item.sale.loanAmount || 0) - totalPaid;
+                const paidEmisCount = item.sale.emiSchedule
+                  ? item.sale.emiSchedule.filter(emi => emi.status === 'Paid').length
+                  : 0;
+                const remainingEmis = Math.max(0, (item.sale.emiNumber ?? 0) - paidEmisCount);
+                return (
+                  <tr key={item.sale.id ?? index} onClick={() => handleRowClick(item.customer)} style={{ cursor: 'pointer' }}>
+                    <td>{index + 1}</td>
+                    <td>{item.sale.loanNumber ?? '-'}</td>
+                    <td>{item.customer.name ?? '-'}</td>
+                    <td>{item.customer.mobileNo ?? '-'}</td>
+                    <td>{item.sale.loanAmount ?? 0}</td>
+                    <td>{item.loanStatus === 'Closed' ? (item.sale.emiNumber ?? 0) : paidEmisCount + 1}</td>
+                    <td>{item.monthlyEMI}</td>
+                    <td>{item.bucket}</td>
+                    <td>{item.overdueCharges}</td>
+                    <td>{item.payableAmount}</td>
+                    <td>{totalPaid}</td>
+                    <td>{totalRemaining}</td>
+                    <td><span className={`status-badge ${item.loanStatus === 'Active' ? 'status-active' : item.loanStatus === 'Closed' ? 'status-closed' : item.loanStatus === 'Overdue' ? 'status-overdue' : ''}`}>{item.loanStatus}</span></td>
+                    <td>{item.nextEmiDate ?? '-'}</td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

@@ -15,7 +15,6 @@ const MultiStepForm = () => {
     mobileNo: '',
     ckycNo: '',
     address: '',
-    customerStatus: 'Active',
     // Vehicle
     vehicleNumber: '',
     engineNumber: '',
@@ -48,7 +47,7 @@ const MultiStepForm = () => {
     loanAmount: '',
     tenure: '',
     interestRate: '',
-    firstEMIDate: '',
+    firstEmiDate: '',
     EMIAmount: '',
     emiSchedule: []
   });
@@ -158,7 +157,7 @@ const MultiStepForm = () => {
     const loanAmount = parseFloat(formData.loanAmount);
     const monthlyRate = parseFloat(formData.interestRate) / 12 / 100;
     let balance = loanAmount;
-    let date = new Date(formData.firstEMIDate);
+    let date = new Date(formData.firstEmiDate);
 
     for (let i = 0; i < tenure; i++) {
       const interest = balance * monthlyRate;
@@ -199,6 +198,38 @@ const MultiStepForm = () => {
   };
 
   const handleSubmit = async () => {
+    // Validation for Finance sales
+    if (formData.saleType === 'Finance') {
+      if (!formData.interestRate || formData.interestRate === '' || parseFloat(formData.interestRate) <= 0) {
+        alert('Interest Rate is required and must be greater than 0 for Finance sales');
+        return;
+      }
+      if (!formData.loanNumber || formData.loanNumber === '') {
+        alert('Loan Number is required for Finance sales');
+        return;
+      }
+      if (!formData.tenure || parseInt(formData.tenure) <= 0) {
+        alert('Tenure is required and must be greater than 0 for Finance sales');
+        return;
+      }
+      if (!formData.firstEmiDate || formData.firstEmiDate === '') {
+        alert('First EMI Date is required for Finance sales');
+        return;
+      }
+    }
+
+    // Validation for Cash sales
+    if (formData.saleType === 'Cash') {
+      if (!formData.shopNumber || formData.shopNumber === '') {
+        alert('Shop Number is required for Cash sales');
+        return;
+      }
+      if (!formData.lastpaymentDate || formData.lastpaymentDate === '') {
+        alert('Last Payment Date is required for Cash sales');
+        return;
+      }
+    }
+
     try {
       const response = await fetch('http://localhost:5000/api/sales', {
         method: 'POST',
@@ -237,26 +268,19 @@ const MultiStepForm = () => {
             </div>
             <div className="form-row">
               <label>Father Name:</label>
-              <input type="text" name="fatherName" value={formData.fatherName} onChange={handleChange} required />
+              <input type="text" name="fatherName" value={formData.fatherName} onChange={handleChange} />
             </div>
             <div className="form-row">
               <label>Mobile No:</label>
-              <input type="text" name="mobileNo" value={formData.mobileNo} onChange={handleChange} required />
+              <input type="text" name="mobileNo" value={formData.mobileNo} onChange={handleChange} />
             </div>
             <div className="form-row">
               <label>Ckyc NO:</label>
-              <input type="text" name="ckycNo" value={formData.ckycNo} onChange={handleChange} required />
+              <input type="text" name="ckycNo" value={formData.ckycNo} onChange={handleChange} />
             </div>
             <div className="form-row">
               <label>Address:</label>
-              <textarea name="address" value={formData.address} onChange={handleChange} required />
-            </div>
-            <div className="form-row">
-              <label>Customer Status:</label>
-              <select name="customerStatus" value={formData.customerStatus} onChange={handleChange} required>
-                <option value="Active">Active</option>
-                <option value="Closed">Closed</option>
-              </select>
+              <textarea name="address" value={formData.address} onChange={handleChange} />
             </div>
           </div>
         );
@@ -287,7 +311,7 @@ const MultiStepForm = () => {
             </div>
             <div className="form-row">
               <label>Engine Number:</label>
-              <input type="text" name="engineNumber" value={formData.engineNumber} onChange={handleChange} required />
+              <input type="text" name="engineNumber" value={formData.engineNumber} onChange={handleChange} />
             </div>
             <div className="form-row">
               <label>Make(Year):</label>
@@ -299,23 +323,23 @@ const MultiStepForm = () => {
             </div>
             <div className="form-row">
               <label>Chassis Number:</label>
-              <input type="text" name="chassisNumber" value={formData.chassisNumber} onChange={handleChange} required />
+              <input type="text" name="chassisNumber" value={formData.chassisNumber} onChange={handleChange} />
             </div>
             <div className="form-row">
               <label>Battery Serial Number:</label>
-              <input type="text" name="batterySerialNumber" value={formData.batterySerialNumber} onChange={handleChange} required />
+              <input type="text" name="batterySerialNumber" value={formData.batterySerialNumber} onChange={handleChange} />
             </div>
             <div className="form-row">
               <label>Battery Count:</label>
-              <input type="number" name="batteryCount" value={formData.batteryCount} onChange={handleChange} required />
+              <input type="number" name="batteryCount" value={formData.batteryCount} onChange={handleChange} />
             </div>
             <div className="form-row">
               <label>Regn Number:</label>
-              <input type="text" name="regnNumber" value={formData.regnNumber} onChange={handleChange} required />
+              <input type="text" name="regnNumber" value={formData.regnNumber} onChange={handleChange} />
             </div>
             <div className="form-row">
               <label>Ex-showroom Price:</label>
-              <input type="number" name="exShowroomPrice" value={formData.exShowroomPrice} onChange={handleChange} required />
+              <input type="number" name="exShowroomPrice" value={formData.exShowroomPrice} onChange={handleChange} />
             </div>
             <div className="form-row">
               <label>Color:</label>
@@ -408,7 +432,7 @@ const MultiStepForm = () => {
                   <input type="date" name="saleDate" value={formData.saleDate} onChange={handleChange} required />
                 </div>
                 <div className="form-row">
-                  <label>Total Amount:</label>
+                  <label>Total Amount(Including all charges):</label>
                   <input type="number" name="totalAmount" value={formData.totalAmount} onChange={handleChange} required />
                 </div>
                 <div className="form-row">
@@ -434,7 +458,7 @@ const MultiStepForm = () => {
                   <input type="text" name="loanNumber" value={formData.loanNumber} onChange={handleChange} required />
                 </div>
                 <div className="form-row">
-                  <label>Total Amount:</label>
+                  <label>Total Amount(Including all charges):</label>
                   <input type="number" name="totalAmount" value={formData.totalAmount} onChange={handleChange} required />
                 </div>
                 <div className="form-row">
@@ -459,7 +483,7 @@ const MultiStepForm = () => {
                 </div>
                 <div className="form-row">
                   <label>First EMI Date:</label>
-                  <input type="date" name="firstEMIDate" value={formData.firstEMIDate} onChange={handleChange} required />
+                  <input type="date" name="firstEmiDate" value={formData.firstEmiDate} onChange={handleChange} required />
                 </div>
                 <div className="form-row">
                   <label>EMI Amount:</label>
@@ -529,7 +553,7 @@ const MultiStepForm = () => {
                   <p><strong>Tenure:</strong> {formData.tenure}</p>
                   <p><strong>Interest Rate:</strong> {formData.interestRate}</p>
                   <p><strong>Sale Date:</strong> {formData.saleDate}</p>
-                  <p><strong>First EMI Date:</strong> {formData.firstEMIDate}</p>
+                  <p><strong>First EMI Date:</strong> {formData.firstEmiDate}</p>
                   <p><strong>EMI Amount:</strong> {formData.EMIAmount}</p>
                   <h5>EMI Schedule</h5>
                   {/* <ul>

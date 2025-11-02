@@ -129,9 +129,9 @@ const Dashboard = ({ openEMIDialog }) => {
         <section className="metrics">
           <div className="metric-card">
             <div className="metric-info">
-              <div className="metric-label">Total Sales</div>
+              <div className="metric-label">Current Month Sales</div>
               <div className="metric-value">{metrics.totalSales}</div>
-              <div className="metric-change green">{metrics.totalLoansChange} from last month</div>
+              <div className="metric-change green">{metrics.totalSalesChange} from last month</div>
             </div>
             <div className="metric-icon blue">💲</div>
           </div>
@@ -171,12 +171,16 @@ const Dashboard = ({ openEMIDialog }) => {
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={monthlyCollection.months.map((month, idx) => ({
                   month,
-                  collection: monthlyCollection.collection[idx]
+                  finance: monthlyCollection.finance[idx],
+                  cash: monthlyCollection.cash[idx],
+                  battery: monthlyCollection.battery[idx]
                 }))}>
                   <XAxis dataKey="month" />
                   <YAxis />
                   <Tooltip formatter={(value) => `₹${value.toLocaleString('en-IN')}`} contentStyle={{ backgroundColor: '#ffffff', border: 'none', color: 'black', fontWeight: 'bold' }} />
-                  <Bar dataKey="collection" fill="#034295ff" activeBar={{ fill: "#082e5c", stroke: "#b6e606ff", strokeWidth: 4, radius: 4 }} />
+                  <Bar dataKey="finance" stackId="a" fill="#0088FE" name="Finance" />
+                  <Bar dataKey="cash" stackId="a" fill="#00C49F" name="Cash" />
+                  <Bar dataKey="battery" stackId="a" fill="#FFBB28" name="Battery" />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -250,7 +254,7 @@ const Dashboard = ({ openEMIDialog }) => {
             <h3>Upcoming Payments</h3>
           </div>
           {upcomingPayments && upcomingPayments.map((upcoming, idx) => (
-            <div key={idx} className="upcoming-payment-item">
+            <div key={idx} className="upcoming-payment-item" onClick={() => navigate(`/customers/${upcoming.customerID}`)} style={{ cursor: 'pointer' }}>
               <div className="upcoming-payment-info">
                 <strong>{upcoming.customer} - {upcoming.loanNo}</strong>
                 <div className="upcoming-due-date">Due: {new Date(upcoming.dueDate).toLocaleDateString('en-IN')}</div>
@@ -266,17 +270,34 @@ const Dashboard = ({ openEMIDialog }) => {
             <span className="alert-icon">❗</span>
             <h3>Due Payments Alert</h3>
           </div>
-          {duePayments && duePayments.map((due, idx) => (
-            <div key={idx} className="due-payment-item">
-              <div className="due-payment-info">
-                <strong>{due.customer} - {due.loanNo}</strong>
-                <div className="due-date">Due: {new Date(due.dueDate).toLocaleDateString('en-IN')}</div>
-                <div className="due-type">{due.type}</div>
-                <div className="bucket-info">Bucket: {due.bucketCount} EMIs (₹{parseFloat(due.bucketAmount).toLocaleString('en-IN')})</div>
-              </div>
-              <div className="due-amount">₹{parseFloat(due.amount).toLocaleString('en-IN')}</div>
-            </div>
-          ))}
+          <div className="scrollable-table-container">
+            <table className="customer-table">
+              <thead>
+                <tr>
+                  <th>Customer</th>
+                  <th>Loan No</th>
+                  <th>Due Date</th>
+                  <th>Type</th>
+                  <th>Amount</th>
+                  <th>Bucket</th>
+                </tr>
+              </thead>
+              <tbody>
+                {duePayments && duePayments.slice(0, 10).map((due, idx) => (
+                  <tr key={idx} onClick={() => navigate(`/customers/${due.customerID}`)} style={{ cursor: 'pointer' }}>
+                    <td>{due.customerName}</td>
+                    <td>{due.loanNo || '-'}</td>
+                    <td>{new Date(due.dueDate).toLocaleDateString('en-IN')}</td>
+                    <td>{due.type}</td>
+                    <td>₹{parseFloat(due.amount).toLocaleString('en-IN')}</td>
+                    <td>
+                      {due.type === 'EMI' ? `${due.bucketCount} EMIs (₹${parseFloat(due.bucketAmount).toLocaleString('en-IN')})` : `₹${parseFloat(due.bucketAmount).toLocaleString('en-IN')}`}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
       </main>
     </div>

@@ -103,6 +103,8 @@ const BatteryInvoice = () => {
     );
   }
 
+  const logoSrc = `${window.location.origin}/terraLogo.svg`;
+
   return (
     <div className="invoice-container">
       <div className="invoice-header">
@@ -115,6 +117,24 @@ const BatteryInvoice = () => {
       </div>
 
       <div className="invoice-content">
+        <div className="header">
+          <div className="header-left">
+            <img src={logoSrc} alt="terraLogo.svg" style={{ height: '20px', verticalAlign: 'middle', marginRight: '5px' }} />Terra Finance
+          </div>
+          <div className="header-center">
+            RASHMI EXPORT PVT LIMITED<br />
+            Corporate Office: Stesalit Tower, GP-Block, E-2-3, 8th Floor, Sector-v, Kolkata, 700091<br />
+            Compliance@terrafinance.co.jp<br />
+            GSTIN/UIN No.: 10JHAPK4278Q1ZW<br />
+            CIN No.: U67100WB1990KTZ0PTC049807<br />
+            Dealer Name: ATIF ENTERPRISES<br />
+            Paschimpally, Near SBI Bank, Kishanganj (Bihar) 855107, Mob.: 8809173140<br />
+          </div>
+          <div className="header-right">
+            Date: {new Date().toLocaleDateString()}
+          </div>
+        </div>
+
         <div className="invoice-title">
           <h1>Battery Sale Invoice</h1>
           <p>Invoice ID: #{sale.id}</p>

@@ -106,6 +106,14 @@ const Vehicle = () => {
     navigate(`/vehicles/${vehicle.vehicleNumber}`, { state: { vehicle } });
   };
 
+  const getStatusClass = (status) => {
+    if (!status) return 'unknown';
+    const lowerStatus = status.toLowerCase();
+    if (lowerStatus === 'in stock') return 'in-stock';
+    if (lowerStatus === 'sold') return 'sold';
+    return 'unknown';
+  };
+
   const generateReportHTML = (vehicles) => {
     const reportDate = new Date().toLocaleDateString();
     return `
@@ -318,7 +326,7 @@ const Vehicle = () => {
                     <td>{vehicle.batteryType || '-'}</td>
                     <td>{vehicle.vehicleChargerName || '-'}</td>
                     <td>₹{vehicle.exShowroomPrice ? parseFloat(vehicle.exShowroomPrice).toLocaleString() : '0'}</td>
-                    <td>{vehicle.vehicleStatus || '-'}</td>
+                    <td><span className={`status-badge ${getStatusClass(vehicle.vehicleStatus)}`}>{vehicle.vehicleStatus || '-'}</span></td>
                     <td>{vehicle.saleDate ? new Date(vehicle.saleDate).toLocaleDateString() : '-'}</td>
                   </tr>
                 ))

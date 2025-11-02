@@ -1,5 +1,6 @@
 export const generateLetterHTML = (customer, company) => {
   const totalPayable = customer.emiSchedule ? customer.emiSchedule.filter(emi => emi.status === 'Overdue').reduce((sum, emi) => sum + (emi.amount + emi.overdueCharges), 0) : 0;
+  const logoSrc = `${window.location.origin}/terraLogo.svg`;
   return `
     <html>
     <head>
@@ -36,18 +37,17 @@ export const generateLetterHTML = (customer, company) => {
     </head>
     <body>
       <div class="header">
-        <div class="header-left">
-          🚗Terra Finance 
-        </div>
+        <div className="header-left">
+            <img src={logoSrc} alt="terraLogo.svg" style={{ height: '20px', verticalAlign: 'middle', marginRight: '5px' }} />Terra Finance
+          </div>
         <div class="header-center">
           RASHMI EXPORT PVT LIMITED<br>
           Corporate Office: Stesalit Tower, GP-Block, E-2-3, 8th Floor, Sector-v, Kolkata, 700091<br>
           Compliance@terrafinance.co.jp<br>
-          GSTIN/UIN No.: 19AABCR4128M1YA<br>
-          CIN No.: U67100WB1990PTC0PTC049807<br>
+          GSTIN/UIN No.: 10JHAPK4278Q1ZW<br>
+          CIN No.: U67100WB1990KTZ0PTC049807<br>
           Dealer Name: ATIF ENTERPRISES<br>
-          Paschimpally, Near SBI Bank, Kishanganj (Bihar) 855107, Mob.: 8809173140<br>
-          <strong>Total Payable for Overdue EMIs: ₹${totalPayable.toLocaleString('en-IN')}</strong>
+          Paschimpally, Near SBI Bank, Kishanganj (Bihar) 855107, Mob.: 8809173140<br> 
         </div>
       </div>
 
@@ -98,7 +98,7 @@ export const generateLetterHTML = (customer, company) => {
                 <td><strong>Registration Number:</strong> ${customer.regnNumber}</td>
               </tr>
               <tr>
-                <td><strong>Battery Serial Number:</strong> ${customer.batterySerialName || 'N/A'}</td>
+                <td><strong>Battery Serial Number:</strong> ${customer.batterySerialNumber || 'N/A'}</td>
                 <td><strong>Battery Count:</strong> ${customer.batteryCount || 'N/A'}</td>
                 <td><strong>Ex-showroom Price:</strong> ₹${customer.exShowroomPrice}</td>
               </tr>
@@ -108,24 +108,17 @@ export const generateLetterHTML = (customer, company) => {
                 <td><strong>Battery Type:</strong> ${customer.batteryType || 'N/A'}</td>
               </tr>
               <tr>
-                <td><strong>Vehicle Charger Type:</strong> ${customer.vehicleChargerType || 'N/A'}</td>
-                <td><strong>Purchase Date:</strong> ${customer.purchaseDate || 'N/A'}</td>
+                <td><strong>Vehicle Charger Type:</strong> ${customer.vehicleChargerName || 'N/A'}</td>
                 <td><strong>Sale Date:</strong> ${customer.saleDate || 'N/A'}</td>
-              </tr>
-              <tr>
-                <td colspan="3"><strong>Vehicle Status:</strong> ${customer.vehicleStatus || 'N/A'}</td>
               </tr>
             </table>
 
             <h4>Sales Details:</h4>
             <table class="customer-table">
-              <tr>
-                <td colspan="3"><strong>Sale Type:</strong> ${customer.saleType}</td>
-              </tr>
               ${customer.saleType?.toLowerCase() === 'finance' ? `
                 <tr>
                   <td><strong>Loan Number:</strong> ${customer.loanNumber}</td>
-                  <td><strong>Sanction Amount:</strong> ₹${customer.sanctionAmount}</td>
+                  <td><strong>Sanction Amount:</strong> ₹${customer.totalAmount}</td>
                   <td><strong>Down Payment:</strong> ₹${customer.downPayment}</td>
                 </tr>
                 <tr>
@@ -136,10 +129,7 @@ export const generateLetterHTML = (customer, company) => {
                 <tr>
                   <td><strong>First EMI Date:</strong> ${customer.firstEmiDate}</td>
                   <td><strong>EMI Amount:</strong> ₹${customer.emiAmount}</td>
-                  <td><strong>Loan Status:</strong> ${customer.loanStatus}</td>
-                </tr>
-                <tr>
-                  <td colspan="3"><strong>Next EMI Date:</strong> ${customer.nextEmiDate}</td>
+                  <td><strong>Loan Status:</strong> ${customer.salesStatus}</td>
                 </tr>
               ` : customer.saleType?.toLowerCase() === 'cash' ? `
                 <tr>
@@ -150,7 +140,7 @@ export const generateLetterHTML = (customer, company) => {
                 <tr>
                   <td><strong>Sale Date:</strong> ${customer.saleDate}</td>
                   <td><strong>Promised Payment Date:</strong> ${customer.promisedPaymentDate}</td>
-                  <td><strong>Payment Status:</strong> ${customer.loanStatus}</td>
+                  <td><strong>Payment Status:</strong> ${customer.salesStatus}</td>
                 </tr>
               ` : ''}
             </table>
@@ -162,8 +152,6 @@ export const generateLetterHTML = (customer, company) => {
                   <tr>
                     <th>EMI No</th>
                     <th>Due Date</th>
-                    <th>Principal</th>
-                    <th>Interest</th>
                     <th>EMI Amount</th>
                     <th>Balance</th>
                     <th>Bucket</th>
@@ -177,8 +165,6 @@ export const generateLetterHTML = (customer, company) => {
                     <tr>
                       <td>${index + 1}</td>
                       <td>${emi.date || ''}</td>
-                      <td>₹${emi.principal || 0}</td>
-                      <td>₹${emi.interest || 0}</td>
                       <td>₹${emi.amount || 0}</td>
                       <td>₹${emi.balance || 0}</td>
                       <td>${emi.bucket || 0}</td>
