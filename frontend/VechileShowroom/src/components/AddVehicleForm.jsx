@@ -8,16 +8,21 @@ const AddVehicleForm = () => {
     vehicleNumber: '',
     engineNumber: '',
     chassisNumber: '',
-    makeYear: '',
+    make: '',
     model: '',
     color: '',
     regnNumber: '',
     toolKit: '',
-    batteryNumber: '',
+    batterySerialNumber: '',
+    batteryCount: '',
+    batteryType: '',
+    vehicleChargerName: '',
     exShowroomPrice: '',
     saleDate: '',
     vehicleStatus: 'In Stock',
   });
+
+
 
   const [errors, setErrors] = useState({});
 
@@ -39,21 +44,18 @@ const AddVehicleForm = () => {
     if (!formData.vehicleNumber) newErrors.vehicleNumber = 'Vehicle number is required';
     if (!formData.engineNumber) newErrors.engineNumber = 'Engine number is required';
     if (!formData.chassisNumber) newErrors.chassisNumber = 'Chassis number is required';
-    if (!formData.makeYear) newErrors.makeYear = 'Make year is required';
+    if (!formData.make) newErrors.make = 'Make year is required';
     if (!formData.model) newErrors.model = 'Model is required';
     if (!formData.color) newErrors.color = 'Color is required';
     if (!formData.regnNumber) newErrors.regnNumber = 'Registration number is required';
     if (!formData.exShowroomPrice) newErrors.exShowroomPrice = 'Ex-showroom price is required';
-
     // Numeric field validation
     if (formData.exShowroomPrice && isNaN(formData.exShowroomPrice)) {
       newErrors.exShowroomPrice = 'Ex-showroom price must be a number';
     }
-
-    if (formData.makeYear && (isNaN(formData.makeYear) || formData.makeYear < 1900 || formData.makeYear > new Date().getFullYear())) {
-      newErrors.makeYear = 'Please enter a valid year';
+    if (formData.make && (isNaN(formData.make) || formData.make < 1900 || formData.make > new Date().getFullYear())) {
+      newErrors.make = 'Please enter a valid year';
     }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -66,13 +68,37 @@ const AddVehicleForm = () => {
     }
 
     try {
-      // Send the vehicle data to backend API for adding new vehicle
+      console.log('formData', { formData })
+      const insertVehicle = {
+        purchaseDate: formData.purchaseDate,
+        vehicleNumber: formData.vehicleNumber,
+        engineNumber: formData.engineNumber,
+        chassisNumber: formData.chassisNumber,
+        make: formData.make,
+        model: formData.model,
+        color: formData.color,
+        regnNumber: formData.regnNumber,
+        toolKit: formData.toolKit,
+        batterySerialNumber: formData.batterySerialNumber,
+        batteryCount: formData.batteryCount ? parseInt(formData.batteryCount, 10) : null,
+        batteryType: formData.batteryType,
+        vehicleChargerName: formData.vehicleChargerName,
+        exShowroomPrice: formData.exShowroomPrice ? parseFloat(formData.exShowroomPrice) : null,
+        saleDate: formData.saleDate || null,
+        vehicleStatus: formData.vehicleStatus,
+      };
+
+      // Send the vehicle data to backend API for adding new vehicle      
       const response = await fetch('http://localhost:5000/api/vehicles', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(insertVehicle)
       });
-
+      if (!response.ok) {
+        const errorData = await response.json(); // Get detailed error from backend
+        console.log('errorData:', { errorData });
+        throw new Error('Failed to insert vehicle');
+      }
       if (response.ok) {
         alert('Vehicle added successfully!');
         navigate('/vehicles');
@@ -154,15 +180,15 @@ const AddVehicleForm = () => {
             <label>Make Year:</label>
             <input
               type="number"
-              name="makeYear"
-              value={formData.makeYear}
+              name="make"
+              value={formData.make}
               onChange={handleChange}
               placeholder="Enter make year"
               min="1900"
               max={new Date().getFullYear()}
               required
             />
-            {errors.makeYear && <span className="error">{errors.makeYear}</span>}
+            {errors.make && <span className="error">{errors.make}</span>}
           </div>
 
           <div className="form-row">
@@ -218,16 +244,52 @@ const AddVehicleForm = () => {
           </div>
 
           <div className="form-row">
-            <label>Battery Number:</label>
+            <label>Battery Serial Number:</label>
             <input
               type="text"
-              name="batteryNumber"
-              value={formData.batteryNumber}
+              name="batterySerialNumber"
+              value={formData.batterySerialNumber}
               onChange={handleChange}
-              placeholder="Enter battery number"
+              placeholder="Enter battery serial number"
             />
           </div>
 
+          <div className="form-row">
+            <label>Battery Count:</label>
+            <input
+              type="number"
+              name="batteryCount"
+              value={formData.batteryCount}
+              onChange={handleChange}
+              placeholder="Enter battery count"
+              min="0"
+            />
+          </div>
+
+          <div className="form-row">
+            <label>Battery Type:</label>
+            <select
+              name="batteryType"
+              value={formData.batteryType}
+              onChange={handleChange}
+            >
+              <option value="">Select battery type</option>
+              <option value="Lithium">Lithium</option>
+              <option value="Lead Acid">Lead Acid</option>
+              <option value="Not Available">Not Available</option>
+            </select>
+          </div>
+
+          <div className="form-row">
+            <label>Vehicle Charger Name:</label>
+            <input
+              type="text"
+              name="vehicleChargerName"
+              value={formData.vehicleChargerName}
+              onChange={handleChange}
+              placeholder="Enter vehicle charger name"
+            />
+          </div>
           <div className="form-row">
             <label>Ex-Showroom Price:</label>
             <input
@@ -242,7 +304,6 @@ const AddVehicleForm = () => {
             />
             {errors.exShowroomPrice && <span className="error">{errors.exShowroomPrice}</span>}
           </div>
-
           <div className="form-row">
             <label>Sale Date:</label>
             <input
@@ -252,7 +313,6 @@ const AddVehicleForm = () => {
               onChange={handleChange}
             />
           </div>
-
           <div className="form-row">
             <label>Vehicle Status:</label>
             <select

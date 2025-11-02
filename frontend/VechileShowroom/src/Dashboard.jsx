@@ -1,11 +1,21 @@
 import React, { useEffect, useState } from "react";
 import Sidebar from './Sidebar.jsx';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis } from 'recharts';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from './Auth/AuthContext.jsx'; // adjust path if needed
 
 const Dashboard = ({ openEMIDialog }) => {
   const [metrics, setMetrics] = useState(null);
   const [monthlyCollection, setMonthlyCollection] = useState(null);
   const [loanStatus, setLoanStatus] = useState(null);
+  const [salesByType, setSalesByType] = useState(null);
+  const [recentPayments, setRecentPayments] = useState(null);
+  const [duePayments, setDuePayments] = useState(null);
+  const [upcomingPayments, setUpcomingPayments] = useState(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(window.innerWidth < 768);
+  const [showSignupDropdown, setShowSignupDropdown] = useState(false);
+  const { logout } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleResize = () => {
@@ -26,12 +36,40 @@ const Dashboard = ({ openEMIDialog }) => {
       .then((res) => res.json())
       .then((data) => setLoanStatus(data));
 
+    fetch("http://localhost:5000/api/dashboard/sales-by-type")
+      .then((res) => res.json())
+      .then((data) => setSalesByType(data));
+
+    fetch("http://localhost:5000/api/dashboard/recent-payments")
+      .then((res) => res.json())
+      .then((data) => setRecentPayments(data));
+
+    fetch("http://localhost:5000/api/dashboard/due-payments")
+      .then((res) => res.json())
+      .then((data) => setDuePayments(data));
+
+    fetch("http://localhost:5000/api/dashboard/upcoming-payments")
+      .then((res) => res.json())
+      .then((data) => setUpcomingPayments(data));
+
     return () => {
       window.removeEventListener('resize', handleResize);
     };
   }, []);
 
-  if (!metrics || !monthlyCollection || !loanStatus) {
+  useEffect(() => {
+    const closeDropdown = (e) => {
+      if (!e.target.closest('.user-menu')) {
+        setShowSignupDropdown(false);
+      }
+    };
+
+    document.addEventListener('click', closeDropdown);
+    return () => document.removeEventListener('click', closeDropdown);
+  }, []);
+
+
+  if (!metrics || !monthlyCollection || !loanStatus || !salesByType) {
     return <div>Loading...</div>;
   }
 
@@ -52,42 +90,74 @@ const Dashboard = ({ openEMIDialog }) => {
             <div className="notification">
               🔔<span className="badge">9</span>
             </div>
-            <div className="user-avatar">IS</div>
+            {/* <div className="user-avatar">IS</div> */}
+            <div className="user-menu">
+              <div
+                className="user-avatar"
+                onClick={() => setShowSignupDropdown(prev => !prev)}
+              >
+                IS
+              </div>
+
+              {showSignupDropdown && (
+                <div className="signup-dropdown">
+                  <Link
+                    to="/signup"
+                    className="signup-link"
+                    onClick={() => setShowSignupDropdown(false)}
+                  >
+                    Sign up
+                  </Link>
+
+                  {/* NEW: Sign out link */}
+                  <button
+                    className="dropdown-item signout-btn"
+                    onClick={() => {
+                      logout();                    // Call logout from AuthContext
+                      setShowSignupDropdown(false);
+                      navigate('/login');          // Redirect to login
+                    }}
+                  >
+                    Sign Out
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </header>
 
         <section className="metrics">
           <div className="metric-card">
             <div className="metric-info">
-              <div className="metric-label">Total Loans</div>
-              <div className="metric-value">{metrics.totalLoans}</div>
-              <div className="metric-change green">{metrics.totalLoansChange} from last month</div>
+              <div className="metric-label">Current Month Sales</div>
+              <div className="metric-value">{metrics.totalSales}</div>
+              <div className="metric-change green">{metrics.totalSalesChange} from last month</div>
             </div>
             <div className="metric-icon blue">💲</div>
           </div>
 
           <div className="metric-card">
             <div className="metric-info">
-              <div className="metric-label">Active Loans</div>
-              <div className="metric-value">{metrics.activeLoans}</div>
-              <div className="metric-change green">{metrics.activeLoansRate} active rate</div>
+              <div className="metric-label">Cash Sales Count</div>
+              <div className="metric-value">{metrics.cashSalesCount}</div>
+              <div className="metric-change green">₹{metrics.cashSalesAmount.toLocaleString('en-IN')} total</div>
             </div>
             <div className="metric-icon green">✔️</div>
           </div>
 
           <div className="metric-card">
             <div className="metric-info">
-              <div className="metric-label">Overdue Payments</div>
-              <div className="metric-value">{metrics.overduePayments}</div>
-              <div className="metric-change red">{metrics.overduePaymentsNote}</div>
+              <div className="metric-label">Battery Sales Count</div>
+              <div className="metric-value">{metrics.batterySalesCount}</div>
+              <div className="metric-change green">₹{metrics.batterySalesAmount.toLocaleString('en-IN')} total</div>
             </div>
-            <div className="metric-icon red">❗</div>
+            <div className="metric-icon red">🔋</div>
           </div>
 
           <div className="metric-card">
             <div className="metric-info">
-              <div className="metric-label">Total Collection</div>
-              <div className="metric-value">{metrics.totalCollectionFormatted}</div>
+              <div className="metric-label">Total Revenue</div>
+              <div className="metric-value">₹{metrics.totalRevenue.toLocaleString('en-IN')}</div>
               <div className="metric-change green">{metrics.totalCollectionChange} from last month</div>
             </div>
             <div className="metric-icon purple">📋</div>
@@ -97,76 +167,102 @@ const Dashboard = ({ openEMIDialog }) => {
         <section className="charts">
           <div className="chart-card">
             <h2>Monthly Collection Trend</h2>
-            {/* Placeholder for chart */}
-            <div className="chart-placeholder">
-              {monthlyCollection.months.map((month, idx) => (
-                <div key={month} className="bar" style={{ height: monthlyCollection.collection[idx] / 1000 + "rem" }}>
-                  <span className="bar-label">{month}</span>
-                </div>
-              ))}
-            </div>
+            {monthlyCollection && (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={monthlyCollection.months.map((month, idx) => ({
+                  month,
+                  finance: monthlyCollection.finance[idx],
+                  cash: monthlyCollection.cash[idx],
+                  battery: monthlyCollection.battery[idx]
+                }))}>
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip formatter={(value) => `₹${value.toLocaleString('en-IN')}`} contentStyle={{ backgroundColor: '#ffffff', border: 'none', color: 'black', fontWeight: 'bold' }} />
+                  <Bar dataKey="finance" stackId="a" fill="#0088FE" name="Finance" />
+                  <Bar dataKey="cash" stackId="a" fill="#00C49F" name="Cash" />
+                  <Bar dataKey="battery" stackId="a" fill="#FFBB28" name="Battery" />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
 
           <div className="chart-card">
-            <h2>Loan Status Distribution</h2>
-            {/* Placeholder for pie chart */}
-            <div className="pie-chart-placeholder">
-              {loanStatus.statuses.map((status, idx) => {
-                const statusClass = status.toLowerCase().replace(' ', '-');
-                const icon = status === 'Active' ? '✔️' : status === 'Closed' ? '✅' : '❗';
-                return (
-                  <div key={status} className={`pie-segment ${statusClass}`}>
-                    <div className="segment-icon">{icon}</div>
-                    <div className="segment-content">
-                      <div className="segment-label">{status}</div>
-                      <div className="segment-count">({loanStatus.counts[idx]})</div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <h2>Sales by Type</h2>
+            {salesByType && (
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={salesByType.types.map((type, idx) => ({
+                      name: type,
+                      value: salesByType.amounts[idx],
+                    }))}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                    activeShape={false}
+                  >
+                    {salesByType.types.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={['#0088FE', '#00C49F', '#FFBB28', '#FF8042'][index % 4]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value) => `₹${value.toLocaleString('en-IN')}`} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </section>
 
         <section className="recent-payments-section">
           <div className="recent-payments-header">
             <h2>Recent Payments</h2>
-            <a href="/payments" className="view-all-link">View All</a>
+            <Link to="/loan-repayments" className="view-all-link">View All</Link>
           </div>
-          <table className="recent-payments-table">
-            <thead>
-              <tr>
-                <th>Customer</th>
-                <th>Loan No</th>
-                <th>Amount</th>
-                <th>Date</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>Rajesh Kumar</td>
-                <td>LN-2024-001</td>
-                <td>₹12,500</td>
-                <td>Dec 15, 2024</td>
-                <td><span className="status-paid">Paid</span></td>
-              </tr>
-              <tr>
-                <td>Priya Sharma</td>
-                <td>LN-2024-008</td>
-                <td>₹15,200</td>
-                <td>Dec 14, 2024</td>
-                <td><span className="status-paid">Paid</span></td>
-              </tr>
-              <tr>
-                <td>Amit Patel</td>
-                <td>LN-2024-015</td>
-                <td>₹9,800</td>
-                <td>Dec 14, 2024</td>
-                <td><span className="status-due">Due</span></td>
-              </tr>
-            </tbody>
-          </table>
+          <div className="scrollable-table-container">
+            <table className="customer-table">
+              <thead>
+                <tr>
+                  <th>Customer</th>
+                  <th>Loan No</th>
+                  <th>Amount</th>
+                  <th>Date</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentPayments && recentPayments.map((payment, idx) => (
+                  <tr key={idx}>
+                    <td>{payment.customer}</td>
+                    <td>{payment.loanNo}</td>
+                    <td>₹{parseFloat(payment.amount).toLocaleString('en-IN')}</td>
+                    <td>{new Date(payment.date).toLocaleDateString('en-IN')}</td>
+                    <td><span className="status-paid">{payment.status}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="upcoming-payments-alert">
+          <div className="alert-header">
+            <span className="alert-icon">⏰</span>
+            <h3>Upcoming Payments</h3>
+          </div>
+          {upcomingPayments && upcomingPayments.map((upcoming, idx) => (
+            <div key={idx} className="upcoming-payment-item" onClick={() => navigate(`/customers/${upcoming.customerID}`)} style={{ cursor: 'pointer' }}>
+              <div className="upcoming-payment-info">
+                <strong>{upcoming.customer} - {upcoming.loanNo}</strong>
+                <div className="upcoming-due-date">Due: {new Date(upcoming.dueDate).toLocaleDateString('en-IN')}</div>
+                <div className="upcoming-type">EMI</div>
+              </div>
+              <div className="upcoming-amount">₹{parseFloat(upcoming.amount).toLocaleString('en-IN')}</div>
+            </div>
+          ))}
         </section>
 
         <section className="due-payments-alert">
@@ -174,19 +270,33 @@ const Dashboard = ({ openEMIDialog }) => {
             <span className="alert-icon">❗</span>
             <h3>Due Payments Alert</h3>
           </div>
-          <div className="due-payment-item">
-            <div className="due-payment-info">
-              <strong>Suresh Reddy - LN-2024-003</strong>
-              <div className="due-date">Due: Today</div>
-            </div>
-            <div className="due-amount">₹11,200</div>
-          </div>
-          <div className="due-payment-item">
-            <div className="due-payment-info">
-              <strong>Neha Gupta - LN-2024-007</strong>
-              <div className="due-date">Due: Yesterday</div>
-            </div>
-            <div className="due-amount">₹13,800</div>
+          <div className="scrollable-table-container">
+            <table className="customer-table">
+              <thead>
+                <tr>
+                  <th>Customer</th>
+                  <th>Loan No</th>
+                  <th>Due Date</th>
+                  <th>Type</th>
+                  <th>Amount</th>
+                  <th>Bucket</th>
+                </tr>
+              </thead>
+              <tbody>
+                {duePayments && duePayments.slice(0, 10).map((due, idx) => (
+                  <tr key={idx} onClick={() => navigate(`/customers/${due.customerID}`)} style={{ cursor: 'pointer' }}>
+                    <td>{due.customerName}</td>
+                    <td>{due.loanNo || '-'}</td>
+                    <td>{new Date(due.dueDate).toLocaleDateString('en-IN')}</td>
+                    <td>{due.type}</td>
+                    <td>₹{parseFloat(due.amount).toLocaleString('en-IN')}</td>
+                    <td>
+                      {due.type === 'EMI' ? `${due.bucketCount} EMIs (₹${parseFloat(due.bucketAmount).toLocaleString('en-IN')})` : `₹${parseFloat(due.bucketAmount).toLocaleString('en-IN')}`}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </section>
       </main>

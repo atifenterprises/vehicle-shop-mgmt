@@ -14,12 +14,14 @@ const VehicleDetails = () => {
     vehicleNumber: '',
     engineNumber: '',
     chassisNumber: '',
-    makeYear: '',
+    make: '',
     model: '',
     color: '',
     regnNumber: '',
     toolKit: '',
-    batteryNumber: '',
+    batterySerialNumber: '',
+    batteryType: '',
+    vehicleChargerName: '',
     exShowroomPrice: '',
     saleDate: '',
     vehicleStatus: 'In Stock',
@@ -27,7 +29,7 @@ const VehicleDetails = () => {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-
+  const [successMessage, setSuccessMessage] = useState(null);
   // Fetch vehicle data from backend using ID
   const fetchVehicleData = async (vehicleId) => {
     setLoading(true);
@@ -46,11 +48,12 @@ const VehicleDetails = () => {
       setLoading(false);
     }
   };
-
+  //alert('vehicleFromState',{vehicleFromState});
   useEffect(() => {
     // If vehicle data is passed from state (from Vehicle.jsx), use it
     if (vehicleFromState) {
       setVehicle(vehicleFromState);
+      //console.log('vehicl:', {vehicle});     
     }
     // Otherwise, fetch from backend using ID from URL
     else if (id) {
@@ -58,17 +61,94 @@ const VehicleDetails = () => {
     }
   }, [vehicleFromState, id]);
 
+  useEffect(() => {
+    console.log('Updated vehicle state:', vehicle);
+  }, [vehicle]); // Runs whenever vehicle state changes
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setVehicle(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleEdit = () => {
-    alert('Edit functionality not implemented yet.');
+  const handleEdit = async () => {
+    setLoading(true);
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      const updatedVehicle = {
+        purchaseDate: vehicle.purchaseDate,
+        vehicleNumber: vehicle.vehicleNumber,
+        engineNumber: vehicle.engineNumber,
+        chassisNumber: vehicle.chassisNumber,
+        make: vehicle.make,
+        model: vehicle.model,
+        color: vehicle.color,
+        regnNumber: vehicle.regnNumber,
+        toolKit: vehicle.toolKit,
+        batterySerialNumber: vehicle.batterySerialNumber,
+        batteryType: vehicle.batteryType,
+        vehicleChargerName: vehicle.vehicleChargerName,
+        exShowroomPrice: vehicle.exShowroomPrice,
+        saleDate: vehicle.saleDate,
+        vehicleStatus: vehicle.vehicleStatus,
+      };
+      //console.log('updatedVehicle :', {updatedVehicle});
+      const response = await fetch(`http://localhost:5000/api/vehicles/${vehicle.vehicleNumber}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatedVehicle),
+      });
+      if (!response.ok) {
+        const errorData = await response.json(); // Get detailed error from backend
+        console.log('errorData:', { errorData });
+        throw new Error('Failed to update vehicle');
+      }
+      const data = await response.json();
+      setSuccessMessage('Vehicle updated successfully!');
+      navigate('/vehicles');
+
+    } catch (error) {
+      setError(error.message);
+      console.error('Error updating vehicle:', error);
+    } finally {
+      setLoading(false);
+    }
+
   };
 
-  const handleDelete = () => {
-    alert('Delete functionality not implemented yet.');
+  const handleDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete this vehicle?')) {
+      return;
+    }
+    if (vehicle.vehicleStatus === 'Sold') {
+      setError('Cannot delete a sold vehicle. Please update the vehicle status first.');
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      const response = await fetch(`http://localhost:5000/api/vehicles/${vehicle.vehicleNumber}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Failed to delete vehicle' }));
+        throw new Error(errorData.error || 'Failed to delete vehicle');
+      }
+      setSuccessMessage('Vehicle deleted successfully!');
+      navigate('/vehicles');
+    } catch (error) {
+      setError(error.message);
+      console.error('Error deleting vehicle:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePrint = () => {
+    window.print();
   };
 
   // Show loading state
@@ -109,7 +189,7 @@ const VehicleDetails = () => {
   }
 
   // Show no data state
-  if (!vehicle.id && !loading) {
+  if (!vehicle.vehicleNumber && !loading) {
     return (
       <div className="customer-container">
         <header className="customer-header">
@@ -139,16 +219,12 @@ const VehicleDetails = () => {
 
       <form className="customer-detail customer-detail-form">
         <label>
-          Vehicle ID:
-          <input type="text" name="id" value={vehicle.id} onChange={handleChange} />
+          Vehicle Number:
+          <input type="text" name="vehicleNumber" value={vehicle.vehicleNumber} onChange={handleChange} />
         </label>
         <label>
           Purchase Date:
           <input type="date" name="purchaseDate" value={vehicle.purchaseDate} onChange={handleChange} />
-        </label>
-        <label>
-          Vehicle Number:
-          <input type="text" name="vehicleNumber" value={vehicle.vehicleNumber} onChange={handleChange} />
         </label>
         <label>
           Engine Number:
@@ -160,7 +236,7 @@ const VehicleDetails = () => {
         </label>
         <label>
           Make Year:
-          <input type="number" name="makeYear" value={vehicle.makeYear} onChange={handleChange} />
+          <input type="number" name="make" value={vehicle.make} onChange={handleChange} />
         </label>
         <label>
           Model:
@@ -183,9 +259,23 @@ const VehicleDetails = () => {
           </select>
         </label>
         <label>
-          Battery Number:
-          <input type="text" name="batteryNumber" value={vehicle.batteryNumber} onChange={handleChange} />
+          Battery Serial Number:
+          <input type="text" name="batterySerialNumber" value={vehicle.batterySerialNumber} onChange={handleChange} />
         </label>
+        <label>
+          Battery Type:
+          <select name="batteryType" value={vehicle.batteryType} onChange={handleChange}>
+            <option value="">Select battery type</option>
+            <option value="Lithium">Lithium</option>
+            <option value="Lead Acid">Lead Acid</option>
+            <option value="Not Available">Not Available</option>
+          </select>
+        </label>
+        <label>
+          Vehicle Charger Name:
+          <input type="text" name="vehicleChargerName" value={vehicle.vehicleChargerName} onChange={handleChange} />
+        </label>
+
         <label>
           Ex-Showroom Price:
           <input type="number" name="exShowroomPrice" value={vehicle.exShowroomPrice} onChange={handleChange} />
@@ -205,8 +295,9 @@ const VehicleDetails = () => {
       </form>
 
       <div className="customer-detail-actions">
-        <button className="btn btn-primary" onClick={handleEdit}>Edit</button>
+        <button className="btn btn-primary" onClick={handleEdit}>Update</button>
         <button className="btn btn-delete" onClick={handleDelete}>Delete</button>
+        <button className="btn btn-secondary" onClick={handlePrint}>Print Details</button>
       </div>
     </div>
   );
