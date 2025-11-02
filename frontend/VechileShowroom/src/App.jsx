@@ -52,7 +52,8 @@ function App() {
   return (
     <>
       <Routes>
-        <Route path="/login" element={<LoginForm />} />        
+        <Route path="/login" element={<LoginForm />} />  
+        <Route path="/vehicle-shop-mgmt" element={<LoginForm />} />        
         {/* <Route path="/verified" element={<Verified />} /> */}
         <Route path="/signup" element={<ProtectedRoute><SignUpForm /></ProtectedRoute>} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
