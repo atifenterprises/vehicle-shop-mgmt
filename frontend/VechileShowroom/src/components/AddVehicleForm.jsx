@@ -89,7 +89,7 @@ const AddVehicleForm = () => {
       };
 
       // Send the vehicle data to backend API for adding new vehicle      
-      const response = await fetch('http://localhost:5000/api/vehicles', {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/vehicles`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(insertVehicle)

@@ -25,7 +25,7 @@ const BatteryInvoice = () => {
     const fetchSaleAndBatteries = async () => {
       try {
         // First fetch the sale record to get serial numbers
-        const saleResponse = await fetch(`http://localhost:5000/api/battery-sales/${id}`);
+        const saleResponse = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/battery-sales/${id}`);
         if (!saleResponse.ok) {
           throw new Error('Failed to fetch sale details');
         }
@@ -35,7 +35,7 @@ const BatteryInvoice = () => {
         const serialNumbers = saleData.serialNumber || [];
         if (serialNumbers.length > 0) {
           const batteriesPromises = serialNumbers.map(serial =>
-            fetch(`http://localhost:5000/api/batteries/${serial}`)
+            fetch(`${import.meta.env.VITE_BACKEND_URL}/api/batteries/${serial}`)
           );
           const batteriesResponses = await Promise.all(batteriesPromises);
 

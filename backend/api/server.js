@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
+const path = require('path');
 const jwt = require('jsonwebtoken');
 const app = express();
 app.use(cors());
@@ -1758,6 +1759,18 @@ app.delete("/api/battery-sales/:id", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// NEW: Static serving and SPA fallback
+app.use('/vehicle-shop-mgmt', express.static(path.join(__dirname, 'dist')));
+// SPA fallback: Use * wildcard (correct for Express 4)
+app.get('/vehicle-shop-mgmt/*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+app.get('/', (req, res) => {
+  res.redirect('/vehicle-shop-mgmt/');
+});
+
+// Ensure no conflicting catch-all (e.g., app.use('*', ...) that sends the hint)
 
 app.listen(5000, () => {
   console.log("Server started on http://localhost:5000");

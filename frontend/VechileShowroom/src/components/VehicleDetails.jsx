@@ -35,7 +35,7 @@ const VehicleDetails = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`http://localhost:5000/api/vehicles/${vehicleId}`);
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/vehicles/${vehicleId}`);
       if (!response.ok) {
         throw new Error('Failed to fetch vehicle data');
       }
@@ -93,7 +93,7 @@ const VehicleDetails = () => {
         vehicleStatus: vehicle.vehicleStatus,
       };
       //console.log('updatedVehicle :', {updatedVehicle});
-      const response = await fetch(`http://localhost:5000/api/vehicles/${vehicle.vehicleNumber}`, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/vehicles/${vehicle.vehicleNumber}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -130,7 +130,7 @@ const VehicleDetails = () => {
     setError(null);
     setSuccessMessage(null);
     try {
-      const response = await fetch(`http://localhost:5000/api/vehicles/${vehicle.vehicleNumber}`, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/vehicles/${vehicle.vehicleNumber}`, {
         method: 'DELETE',
       });
       if (!response.ok) {

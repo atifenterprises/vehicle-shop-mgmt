@@ -20,7 +20,7 @@ const BatterySaleForm = () => {
 
   const fetchBatteries = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/batteries');
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/batteries`);
       if (response.ok) {
         const data = await response.json();
         const inStockBatteries = data.filter(b => b.status === 'In Stock');
@@ -119,7 +119,7 @@ const BatterySaleForm = () => {
         warrantyStartDate: formData.warrantyStartDate
       };
 
-      const response = await fetch('http://localhost:5000/api/battery-sales', {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/battery-sales`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(saleData)

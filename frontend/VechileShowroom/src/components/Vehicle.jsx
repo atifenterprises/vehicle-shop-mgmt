@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate , Link} from 'react-router-dom';
 import '../index.css';
 
 const Vehicle = () => {
@@ -11,8 +11,8 @@ const Vehicle = () => {
   const navigate = useNavigate();
 
   const fetchVehicles = async () => {
-    try {
-      const response = await fetch('http://localhost:5000/api/vehicles');
+    try {      
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/vehicles`);
       if (!response.ok) {
         throw new Error('Failed to fetch vehicles');
       }
@@ -103,7 +103,7 @@ const Vehicle = () => {
 
   const handleRowClick = (vehicle) => {
     console.log(vehicle);
-    navigate(`/vehicles/${vehicle.vehicleNumber}`, { state: { vehicle } });
+    navigate(`vehicles/${vehicle.vehicleNumber}`, { state: { vehicle } });
   };
 
   const getStatusClass = (status) => {
@@ -195,7 +195,8 @@ const Vehicle = () => {
       <header className="customer-header">
         <>
           <h1><span className="customer-icon">🚙</span> Vehicle Management</h1>
-          <button className="btn btn-primary" onClick={() => navigate('/')}>← Back to Dashboard</button>
+          {/* <button className="btn btn-primary" onClick={() => navigate('/', { replace: true })}>← Back to Dashboard</button> */}
+          <Link to="/" className="btn btn-primary">← Back to Dashboard</Link>  {/* Changed to Link for better slash preservation */}
         </>
       </header>
 
