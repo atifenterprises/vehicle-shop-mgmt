@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import {Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './Auth/AuthContext.jsx';
 import Dashboard from './Dashboard.jsx';
 import Customer from './components/Customer.jsx';
@@ -28,7 +28,6 @@ import SalesFinance from './components/SalesFinance.jsx';
 import LoanRepayments from './components/LoanRepayments.jsx';
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
-  console.log('isAuthenticated1:', isAuthenticated);
   if (loading) {
     return (
       <>
@@ -38,7 +37,7 @@ const ProtectedRoute = ({ children }) => {
     ); // Show loading progress bar and loading state while checking session
   }
   console.log('isAuthenticated:', isAuthenticated);
-  return isAuthenticated ? children : <Navigate to="/login" replace />;
+  return isAuthenticated ? children : <Navigate to="login" replace />;
 };
 
 function App() {
@@ -46,35 +45,35 @@ function App() {
   const openEMIDialog = () => setIsEMIDialogOpen(true);
   const closeEMIDialog = () => setIsEMIDialogOpen(false);
   const location = useLocation();
-  useEffect(()=>{
-    console.log('Current URL:', location.pathname+location.search+location.hash);
-  },[location])
+  useEffect(() => {
+    console.log('Current URL:', location.pathname + location.search + location.hash);
+  }, [location])
   return (
     <>
       <Routes>
-        <Route path="/login" element={<LoginForm />} />  
-        <Route path="/vehicle-shop-mgmt" element={<LoginForm />} />        
+        <Route path="login" element={<LoginForm />} />
+        <Route path="/vehicle-shop-mgmt" element={<ProtectedRoute><Dashboard /></ProtectedRoute>}/>
         {/* <Route path="/verified" element={<Verified />} /> */}
-        <Route path="/signup" element={<ProtectedRoute><SignUpForm /></ProtectedRoute>} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/resetpassword" element={<ResetPassword />} />
-        {/* <Route path="/" element={<ProtectedRoute><Dashboard/></ProtectedRoute>} /> */}
-        <Route path="/signout" element={<ProtectedRoute><SignOut /></ProtectedRoute>} />
+        <Route path="signup" element={<ProtectedRoute><SignUpForm /></ProtectedRoute>} />
+        <Route path="forgot-password" element={<ForgotPassword />} />
+        <Route path="resetpassword" element={<ResetPassword />} />        
+        <Route path="signout" element={<ProtectedRoute><SignOut /></ProtectedRoute>} />
         <Route path="/" element={<ProtectedRoute><Dashboard openEMIDialog={openEMIDialog} /></ProtectedRoute>} />
         {/* <Route path="/" element={<Dashboard  />} /> */}
-        <Route path="/customers" element={<ProtectedRoute><Customer /></ProtectedRoute>} />
-        <Route path="/customers/:id" element={<ProtectedRoute><CustomerDetail /></ProtectedRoute>} />
-        <Route path="/add-sale" element={<ProtectedRoute><MultiStepForm /></ProtectedRoute>} />
-        <Route path="/add-vehicle" element={<ProtectedRoute><AddVehicleForm /></ProtectedRoute>} />
-        <Route path="/vehicles" element={<ProtectedRoute><Vehicle /></ProtectedRoute>} />
-        <Route path="/vehicles/:id" element={<ProtectedRoute><VehicleDetails /></ProtectedRoute>} />
-        <Route path="/batteries" element={<ProtectedRoute><Battery /></ProtectedRoute>} />
-        <Route path="/battery-sale" element={<ProtectedRoute><BatterySaleForm /></ProtectedRoute>} />
-        <Route path="/battery-invoice/:id" element={<ProtectedRoute><BatteryInvoice /></ProtectedRoute>} />
-        <Route path="/cashflows" element={<ProtectedRoute><Cashflow /></ProtectedRoute>} />
-        <Route path="/sales-finance" element={<ProtectedRoute><SalesFinance/></ProtectedRoute>} />
-        <Route path="/loan-repayments" element={<ProtectedRoute><LoanRepayments /></ProtectedRoute>} />
-        <Route path="/customerEnquiry" element={<ProtectedRoute><CustomerEnquiry /></ProtectedRoute>} />
+        <Route path="customers" element={<ProtectedRoute><Customer /></ProtectedRoute>} />
+        <Route path="customers/:id" element={<ProtectedRoute><CustomerDetail /></ProtectedRoute>} />
+        <Route path="add-sale" element={<ProtectedRoute><MultiStepForm /></ProtectedRoute>} />
+        <Route path="add-vehicle" element={<ProtectedRoute><AddVehicleForm /></ProtectedRoute>} />
+        <Route path="vehicles" element={<ProtectedRoute><Vehicle /></ProtectedRoute>} />
+        <Route path="vehicles/:id" element={<ProtectedRoute><VehicleDetails /></ProtectedRoute>} />
+        <Route path="batteries" element={<ProtectedRoute><Battery /></ProtectedRoute>} />
+        <Route path="battery-sale" element={<ProtectedRoute><BatterySaleForm /></ProtectedRoute>} />
+        <Route path="battery-invoice/:id" element={<ProtectedRoute><BatteryInvoice /></ProtectedRoute>} />
+        <Route path="cashflows" element={<ProtectedRoute><Cashflow /></ProtectedRoute>} />
+        <Route path="sales-finance" element={<ProtectedRoute><SalesFinance /></ProtectedRoute>} />
+        <Route path="loan-repayments" element={<ProtectedRoute><LoanRepayments /></ProtectedRoute>} />
+        <Route path="customerEnquiry" element={<ProtectedRoute><CustomerEnquiry /></ProtectedRoute>} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       {isEMIDialogOpen && (
         <div className="modal-overlay" onClick={closeEMIDialog}>

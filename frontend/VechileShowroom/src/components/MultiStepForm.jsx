@@ -56,7 +56,7 @@ const MultiStepForm = () => {
 
   const fetchVehicles = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/vehicles');
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/vehicles`);
       if (response.ok) {
         const allVehicles = await response.json();
         const inStockVehicles = allVehicles.filter(vehicle => vehicle.vehicleStatus === 'In Stock');
@@ -231,7 +231,7 @@ const MultiStepForm = () => {
     }
 
     try {
-      const response = await fetch('http://localhost:5000/api/sales', {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/sales`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)

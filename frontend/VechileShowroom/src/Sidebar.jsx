@@ -15,25 +15,25 @@ const Sidebar = ({ openEMIDialog = () => { } }) => {
         <a href="/" className="nav-link">
           <span className="icon">🏠</span> Dashboard
         </a>
-        <a href="/customers" className="nav-link">
+        <a href="customers" className="nav-link">
           <span className="icon">👥</span> Customers/Sales
         </a>
-        <a href="/sales-finance" className="nav-link">
+        <a href="sales-finance" className="nav-link">
           <span className="icon">💱</span> Sale on Finance
         </a>
-        <a href="/cashflows" className="nav-link">
+        <a href="cashflows" className="nav-link">
           <span className="icon">💲</span> Sale on Cash
         </a>
-        <a href="/loan-repayments" className="nav-link">
+        <a href="loan-repayments" className="nav-link">
           <span className="icon">💳</span> Payments/Loans
         </a>
-        <a href="/vehicles" className="nav-link">
+        <a href="vehicles" className="nav-link">
           <span className="icon">🚙</span> Vehicle(Stocks)
         </a>
-        <a href="/batteries" className="nav-link">
+        <a href="batteries" className="nav-link">
           <span className="icon">🔋</span> Batteries
         </a>
-        <a href="/customerEnquiry" className="nav-link">
+        <a href="customerEnquiry" className="nav-link">
           <span className="icon">📝</span> Customer Enquiry
         </a>
         <button className="nav-link button-link button-link-no-padding" onClick={openEMIDialog}>

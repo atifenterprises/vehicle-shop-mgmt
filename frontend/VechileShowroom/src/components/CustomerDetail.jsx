@@ -63,7 +63,7 @@ const CustomerDetail = () => {
     setError(null);
     try {
 
-      const response = await fetch(`http://localhost:5000/api/customers/${id}`);
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/customers/${id}`);
 
       if (!response.ok) {
         throw new Error('Failed to fetch customer data');
@@ -251,7 +251,7 @@ const CustomerDetail = () => {
         throw new Error('Names, Vehicle Number, and Sale Type are required');
       }
       console.log('handleupdate customer record:',customer);
-      const response = await fetch(`http://localhost:5000/api/customers/${customer.customerId}`, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/customers/${customer.customerId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(customer)
@@ -278,7 +278,7 @@ const CustomerDetail = () => {
 
   function handleDelete() {
     if (!window.confirm('Are you sure you want to delete this customer?')) return;
-    fetch(`http://localhost:5000/api/customers/${customer.customerId}`, {
+    fetch(`${import.meta.env.VITE_BACKEND_URL}/api/customers/${customer.customerId}`, {
       method: 'DELETE'
     })
       .then(response => {
@@ -349,7 +349,13 @@ const CustomerDetail = () => {
         backButtonText: 'Back to Loan Repayments',
         backButtonRoute: '/loan-repayments'
       };
+    }else{
+      return {
+        backButtonText: 'Back to Customers',
+        backButtonRoute: '/customers'
+      };
     }
+
   };
 
   const fieldConfig = getFieldsToShow(customer.saleType);
@@ -399,13 +405,13 @@ const CustomerDetail = () => {
         <header className="customer-header">
           <h1><span className="customer-icon">🔒</span> Customer Detail</h1>
           <button className="btn btn-primary" onClick={() => navigate(backConfig.backButtonRoute)}>
-            ← {backConfig.backButtonText}
+            {/* ← {backConfig.backButtonText} */}
           </button>
         </header>
         <div className="no-data-container">
           <p>No customer data available. {customer.customerId}</p>
           <button className="btn btn-primary" onClick={() => navigate(backConfig.backButtonRoute)}>
-            {backConfig.backButtonText}
+            {/* {backConfig.backButtonText} */}
           </button>
         </div>
       </div>

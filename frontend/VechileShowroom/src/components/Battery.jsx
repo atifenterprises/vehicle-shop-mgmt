@@ -28,7 +28,7 @@ const Battery = () => {
 
   const fetchBatteries = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/batteries');
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/batteries`);
       if (!response.ok) {
         throw new Error('Failed to fetch batteries');
       }
@@ -43,7 +43,7 @@ const Battery = () => {
 
   const fetchSales = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/battery-sales');
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/battery-sales`);
       if (!response.ok) {
         throw new Error('Failed to fetch sales');
       }
@@ -185,7 +185,7 @@ const Battery = () => {
   const handleDelete = async (serialNumber) => {
     if (window.confirm('Are you sure you want to delete this battery?')) {
       try {
-        const response = await fetch(`http://localhost:5000/api/batteries/${serialNumber}`, {
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/batteries/${serialNumber}`, {
           method: 'DELETE'
         });
 

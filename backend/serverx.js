@@ -4,7 +4,13 @@ const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 jwt = require('jsonwebtoken');
 const app = express();
-app.use(cors());
+
+const corsOptions={
+  origin:process.env.FRONTEND_URL,
+  methods:["GET","PUT","POST","DELETE"],
+  allowedHeaders:["Content-Type", "Authorization"], 
+}
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Supabase client setup
@@ -182,7 +188,7 @@ const updateSaleStatuses = async (customerId) => {
     if (updateError) {
       console.error('Error updating sale statuses:', updateError);
     } else {
-      console.log(`Updated statuses for customer ${customerId}: loanStatus=${loanStatus}, salesStatus=${salesStatus}`);
+      //console.log(`Updated statuses for customer ${customerId}: loanStatus=${loanStatus}, salesStatus=${salesStatus}`);
     }
   } catch (err) {
     console.error('Error in updateSaleStatuses:', err);
@@ -382,11 +388,11 @@ app.get("/api/dashboard/metrics", async (req, res) => {
 
     const { data: salesData, error: salesError } = await supabase.from('sales').select('*');
     if (salesError) throw salesError;
-    console.log('salesData:', salesData);
+   // console.log('salesData:', salesData);
 
     const { data: batterySalesData, error: batterySalesError } = await supabase.from('battery_sales').select('*');
     if (batterySalesError) throw batterySalesError;
-    console.log('batterySalesData:', batterySalesData);
+    //console.log('batterySalesData:', batterySalesData);
 
     // Calculate metrics from data
     const financeCustomers = customersData.filter(c => c.saleType === 'Finance');
@@ -1359,6 +1365,7 @@ app.put('/api/customers/:customerId', async (req, res) => {
 
 app.get("/api/vehicles", async (req, res) => {
   try {
+    console.log('Vehicle api hit', req);
     const { data, error } = await supabase.from('vehicles').select('*');
     if (error) throw error;
     const mappedData = data.map(mapVehicleToCamelCase);
