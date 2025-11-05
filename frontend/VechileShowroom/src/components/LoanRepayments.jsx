@@ -12,7 +12,7 @@ const LoanRepayments = () => {
   // Fetch only Finance sales (keep raw nested data)
   const fetchCustomers = async () => {
     try {
-      const url = '/api/sales-details?saleType=Finance';
+      const url = `${import.meta.env.VITE_BACKEND_URL}/api/sales-details?saleType=Finance`;
       console.log('Fetching from:', url);
 
       const response = await fetch(url);

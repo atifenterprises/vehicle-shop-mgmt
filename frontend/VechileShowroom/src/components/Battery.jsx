@@ -133,7 +133,7 @@ const Battery = () => {
       // For adding new battery, exclude id as it's auto-generated
       const dataToSend = editingBattery ? formData : { ...formData, id: undefined };
 
-      const response = await fetch(`http://localhost:5000${url}`, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}${url}`, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(dataToSend)

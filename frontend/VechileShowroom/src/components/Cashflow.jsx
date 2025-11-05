@@ -13,7 +13,7 @@ const Cashflow = () => {
 
     const fetchCashflows = async () => {
         try {
-            const url = '/api/sales-details?saleType=Cash';
+            const url = `${import.meta.env.VITE_BACKEND_URL}/api/sales-details?saleType=Cash`;
             console.log('Fetching from:', url);
 
             const response = await fetch(url);

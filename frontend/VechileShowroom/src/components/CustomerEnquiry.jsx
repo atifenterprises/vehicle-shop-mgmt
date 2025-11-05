@@ -25,7 +25,7 @@ const CustomerEnquiry = () => {
 
   const fetchEnquiries = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/customer-enquiries');
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/customer-enquiries`);
       if (!response.ok) {
         throw new Error('Failed to fetch customer enquiries');
       }
@@ -116,7 +116,7 @@ const CustomerEnquiry = () => {
         : '/api/customer-enquiries';
       const method = editingEnquiry ? 'PUT' : 'POST';
 
-      const response = await fetch(`http://localhost:5000${url}`, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}${url}`, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
@@ -160,7 +160,7 @@ const CustomerEnquiry = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this enquiry?')) {
       try {
-        const response = await fetch(`http://localhost:5000/api/customer-enquiries/${id}`, {
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/customer-enquiries/${id}`, {
           method: 'DELETE'
         });
 

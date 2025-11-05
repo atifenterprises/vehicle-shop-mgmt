@@ -12,7 +12,7 @@ const Customer = () => {
 
   const fetchCustomers = async () => {
     try {
-      const response = await fetch('/api/customers');
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/customers`);
       if (!response.ok) {
         throw new Error('Failed to fetch customers');
       }
