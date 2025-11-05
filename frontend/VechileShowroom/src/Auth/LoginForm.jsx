@@ -75,32 +75,6 @@ function LoginForm() {
     }
     try {
       if (isLogin) {
-        // setMessageAfterSignUp('');
-        // try {
-        //   const response = await fetch('http://localhost:5000/api/login',
-        //     {
-        //       method: 'POST',
-        //       headers: { 'Content-Type': 'application/json' },
-        //       body: JSON.stringify({ email, password, name })
-        //     });
-
-        //   const result = await response.json();
-        //   //alert('result : ', { result });
-        //   if (response.ok) {
-        //     //login(result.user);
-        //     login();
-        //     setErrors({ name: '', email: '', password: '', confirmPassword: '' });
-        //     setSuccessMessage(result.message || 'Login successful!');
-        //     navigate('/');
-        //   } else {
-        //     setErrorMessage(response.data.message || 'Invalid Credentials')
-        //   }
-        // }
-        // catch (err) {
-        //   setErrorMessage('Login Failed!')
-        // }
-
-
         await login(email, password, name); // Use AuthContext's login method
         setErrors({ name: '', email: '', password: '', confirmPassword: '' });
         setSuccessMessage('Login successful!');
@@ -108,7 +82,7 @@ function LoginForm() {
       } else {
         console.log('Sign Up:', { name, email, password });
 
-        const response = await fetch('http://localhost:5000/api/signup', {
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/signup`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password, name })
