@@ -5,7 +5,13 @@ require('dotenv').config();
 const path = require('path');
 const jwt = require('jsonwebtoken');
 const app = express();
-app.use(cors());
+
+const corsOptions={
+  origin:process.env.FRONTEND_URL,
+  methods:["GET","PUT","POST","DELETE"],
+  allowedHeaders:["Content-Type", "Authorization"], 
+}
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Supabase client setup
@@ -383,11 +389,11 @@ app.get("/api/dashboard/metrics", async (req, res) => {
 
     const { data: salesData, error: salesError } = await supabase.from('sales').select('*');
     if (salesError) throw salesError;
-    console.log('salesData:', salesData);
+    //console.log('salesData:', salesData);
 
     const { data: batterySalesData, error: batterySalesError } = await supabase.from('battery_sales').select('*');
     if (batterySalesError) throw batterySalesError;
-    console.log('batterySalesData:', batterySalesData);
+    //console.log('batterySalesData:', batterySalesData);
 
     // Calculate metrics from data
     const financeCustomers = customersData.filter(c => c.saleType === 'Finance');
