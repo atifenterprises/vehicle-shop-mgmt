@@ -24,31 +24,31 @@ const Dashboard = ({ openEMIDialog }) => {
 
     window.addEventListener('resize', handleResize);
 
-    fetch("http://localhost:5000/api/dashboard/metrics")
+    fetch(`${import.meta.env.VITE_BACKEND_URL}/api/dashboard/metrics`)
       .then((res) => res.json())
       .then((data) => setMetrics(data));
 
-    fetch("http://localhost:5000/api/dashboard/monthly-collection")
+    fetch(`${import.meta.env.VITE_BACKEND_URL}/api/dashboard/monthly-collection1`)
       .then((res) => res.json())
       .then((data) => setMonthlyCollection(data));
 
-    fetch("http://localhost:5000/api/dashboard/loan-status")
+    fetch(`${import.meta.env.VITE_BACKEND_URL}/api/dashboard/loan-status`)
       .then((res) => res.json())
       .then((data) => setLoanStatus(data));
 
-    fetch("http://localhost:5000/api/dashboard/sales-by-type")
+    fetch(`${import.meta.env.VITE_BACKEND_URL}/api/dashboard/sales-by-type`)
       .then((res) => res.json())
       .then((data) => setSalesByType(data));
 
-    fetch("http://localhost:5000/api/dashboard/recent-payments")
+    fetch(`${import.meta.env.VITE_BACKEND_URL}/api/dashboard/recent-payments`)
       .then((res) => res.json())
       .then((data) => setRecentPayments(data));
 
-    fetch("http://localhost:5000/api/dashboard/due-payments")
+    fetch(`${import.meta.env.VITE_BACKEND_URL}/api/dashboard/due-payments`)
       .then((res) => res.json())
       .then((data) => setDuePayments(data));
 
-    fetch("http://localhost:5000/api/dashboard/upcoming-payments")
+    fetch(`${import.meta.env.VITE_BACKEND_URL}/api/dashboard/upcoming-payments`)
       .then((res) => res.json())
       .then((data) => setUpcomingPayments(data));
 
