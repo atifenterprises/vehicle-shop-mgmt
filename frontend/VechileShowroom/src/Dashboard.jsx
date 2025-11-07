@@ -28,7 +28,7 @@ const Dashboard = ({ openEMIDialog }) => {
       .then((res) => res.json())
       .then((data) => setMetrics(data));
 
-    fetch(`${import.meta.env.VITE_BACKEND_URL}/api/dashboard/monthly-collection1`)
+    fetch(`${import.meta.env.VITE_BACKEND_URL}/api/dashboard/monthly-collection`)
       .then((res) => res.json())
       .then((data) => setMonthlyCollection(data));
 
