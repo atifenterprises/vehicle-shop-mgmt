@@ -18,14 +18,14 @@ function ForgotPassword() {
   return (
     <form onSubmit={handleSubmit}>
       <h2>Forgot Password</h2>
-      <input
+      <input className="input-field"
         type="email"
         placeholder="Enter your email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         required
       />
-      <button type="submit">Send Reset Link</button>
+      <button type="submit" className='submit-button'>Send Reset Link</button>
       <p>{message}</p>
     </form>
   );
