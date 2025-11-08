@@ -14,6 +14,7 @@ const CustomerDetail = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { id } = useParams();
+  const decodedId = decodeURIComponent(id);
 
   const customerFromState = location.state?.customer;
 
@@ -63,7 +64,7 @@ const CustomerDetail = () => {
     setError(null);
     try {
 
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/customers/${id}`);
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/customers/${encodeURIComponent(id)}`);
 
       if (!response.ok) {
         throw new Error('Failed to fetch customer data');
@@ -127,14 +128,14 @@ const CustomerDetail = () => {
 
   useEffect(() => {
     //fetch from backend using ID from URL
-    if (id) {
-      //console.log('useeffect fetch customer: ', id)
-      fetchCustomerData(id);
+    if (decodedId) {
+      //console.log('useeffect fetch customer: ', decodedId)
+      fetchCustomerData(decodedId);
     } else if (customerFromState) { // If customer data is passed from state (from Customer.jsx), use it
       console.log('customerFromState :: ', { customerFromState });
       setCustomer(customerFromState);
     }
-  }, [customerFromState, id]);
+  }, [customerFromState, decodedId]);
 
   // Calculate promised payment date for cash sales if missing
   useEffect(() => {
@@ -244,14 +245,14 @@ const CustomerDetail = () => {
     setError(null);
     try {
       // Basic validation      
-      if (!customer.customerId || customer.customerId !== id) {
+      if (!customer.customerId || customer.customerId !== decodedId) {
         throw new Error('Customer IDs is invalid or missing');
       }
       if (!customer.name || !customer.vehicleNumber || !customer.saleType) {
         throw new Error('Names, Vehicle Number, and Sale Type are required');
       }
       console.log('handleupdate customer record:',customer);
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/customers/${customer.customerId}`, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/customers/${encodeURIComponent(customer.customerId)}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(customer)
@@ -278,7 +279,7 @@ const CustomerDetail = () => {
 
   function handleDelete() {
     if (!window.confirm('Are you sure you want to delete this customer?')) return;
-    fetch(`${import.meta.env.VITE_BACKEND_URL}/api/customers/${customer.customerId}`, {
+    fetch(`${import.meta.env.VITE_BACKEND_URL}/api/customers/${encodeURIComponent(customer.customerId)}`, {
       method: 'DELETE'
     })
       .then(response => {

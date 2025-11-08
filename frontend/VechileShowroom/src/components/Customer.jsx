@@ -30,8 +30,11 @@ const Customer = () => {
             // Add other fields from nested structure if needed
           };
         } else {
-          // Flat format: direct customer object
-          return item;
+          // Flat format: direct customer object with new 'status' field
+          return {
+            ...item,
+            loanStatus: item.status || 'N/A'
+          };
         }
       });
 
@@ -93,7 +96,8 @@ const Customer = () => {
   }).length;
 
   const handleRowClick = (customer) => {
-    navigate(`/customers/${customer.customerId}`, { state: { customer, from: 'customers' } });
+    const encodedId = encodeURIComponent(customer.customerId);
+    navigate(`/customers/${encodedId}`, { state: { customer, from: 'customers' } });
   };
 
   const generateReportHTML = (customers) => {

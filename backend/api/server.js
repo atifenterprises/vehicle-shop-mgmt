@@ -6,11 +6,23 @@ const path = require('path');
 const jwt = require('jsonwebtoken');
 const app = express();
 
-const corsOptions={
-  origin:process.env.FRONTEND_URL,
-  methods:["GET","PUT","POST","DELETE"],
-  allowedHeaders:["Content-Type", "Authorization"], 
-}
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    const allowedOrigins = [
+      'https://vehicle-shop-mgmt.vercel.app',
+      'http://localhost:5173'
+    ];
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ["GET", "PUT", "POST", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
 app.use(cors(corsOptions));
 app.use(express.json());
 
@@ -178,18 +190,40 @@ const updateSaleStatuses = async (customerId) => {
       } else {
         salesStatus = 'Active'; // Or keep as is, but ensure it's not closed if remaining > 0
       }
+      loanStatus = null; // No loan for cash sales
     }
 
-    // Update the sales table
+    // Update the sales table with correct salesStatus
     const { error: updateError } = await supabase
       .from('sales')
-      .update({ salesStatus: loanStatus })
+      .update({ salesStatus: salesStatus })
       .eq('customerId', customerId);
 
     if (updateError) {
       console.error('Error updating sale statuses:', updateError);
     } else {
-      console.log(`Updated statuses for customer ${customerId}: loanStatus=${loanStatus}, salesStatus=${salesStatus}`);
+      console.log(`Updated sale statuses for customer ${customerId}: salesStatus=${salesStatus}`);
+    }
+
+    // Update the customers table with appropriate status
+    let customerUpdateData = {};
+    if (saleData.saleType === 'Finance') {
+      customerUpdateData.loanStatus = loanStatus;
+    } else if (saleData.saleType === 'Cash') {
+      customerUpdateData.salesStatus = salesStatus;
+    }
+
+    if (Object.keys(customerUpdateData).length > 0) {
+      const { error: customerUpdateError } = await supabase
+        .from('customers')
+        .update(customerUpdateData)
+        .eq('customerId', customerId);
+
+      if (customerUpdateError) {
+        console.error('Error updating customer status:', customerUpdateError);
+      } else {
+        console.log(`Updated customer status for customer ${customerId}: ${JSON.stringify(customerUpdateData)}`);
+      }
     }
   } catch (err) {
     console.error('Error in updateSaleStatuses:', err);
@@ -405,8 +439,12 @@ app.get("/api/dashboard/metrics", async (req, res) => {
     const activeLoansCount = activeLoans.length;
     const overduePaymentsCount = overduePayments.length;
 
-    // Total Collection: sum of EMIAmount for active loans
-    const totalCollection = activeLoans.reduce((sum, c) => sum + parseFloat(c.EMIAmount.replace(/,/g, '')), 0);
+    // Total Collection: sum of EMI amounts for active loans plus cash payments
+    let totalCollection = activeLoans.reduce((sum, c) => sum + parseFloat(c.EMIAmount.replace(/,/g, '')), 0);
+    // Add cash payments from cash customers
+    cashCustomers.forEach(c => {
+      totalCollection += parseFloat(c.paidAmount || 0);
+    });
     const totalCollectionFormatted = `₹${totalCollection.toLocaleString('en-IN')}`;
 
     // Calculate dynamic changes
@@ -701,10 +739,18 @@ app.post('/api/sales', async (req, res) => {
       throw new Error(`Transaction Failed : ${error.message}`);
     }
 
-    // Update vehicle status to 'Sold' after successful sale
+    // Update vehicle status based on sale type and payment status
+    let vehicleStatus = 'Sold';
+    if (formData.saleType === 'Cash') {
+      // For cash sales, only mark as Sold if fully paid
+      if (parseFloat(formData.paidAmount) < parseFloat(formData.totalAmount)) {
+        vehicleStatus = 'Reserved'; // Or appropriate status for partial payment
+      }
+    }
+    // For finance sales, mark as Sold since loan is active
     const { error: updateError } = await supabase
       .from('vehicles')
-      .update({ vehicleStatus: 'Sold', saleDate: formData.saleDate })
+      .update({ vehicleStatus: vehicleStatus, saleDate: formData.saleDate })
       .eq('vehicleNumber', formData.vehicleNumber);
 
     if (updateError) {
@@ -1013,7 +1059,11 @@ const generateEmiSchedule = (firstEmiDate, tenure, emiAmount, loanAmount) => {
     const emiDate = new Date(startDate);
     emiDate.setMonth(startDate.getMonth() + i);
     const dateStr = emiDate.toISOString().split('T')[0];
-    const principal = Math.round(emiAmt * 0.7); // Assume 70% principal
+    let principal = Math.round(emiAmt * 0.7); // Assume 70% principal
+    // Adjust principal for last EMI to prevent negative balance
+    if (balance - principal < 0) {
+      principal = balance;
+    }
     const interest = emiAmt - principal;
     balance -= principal;
     if (balance < 0) balance = 0;
@@ -1074,11 +1124,29 @@ app.get("/api/sales-details", async (req, res) => {
 // GET customers
 app.get("/api/customers", async (req, res) => {
   try {
-    const { data, error } = await supabase.from('customers').select('*');
+    // Fetch customers with their sales status
+    const { data: customersData, error: customersError } = await supabase.from('customers').select('*');
+    if (customersError) throw customersError;
+
+    // Fetch sales data to get salesStatus
+    const { data: salesData, error: salesError } = await supabase.from('sales').select('customerId, salesStatus');
+    if (salesError) throw salesError;
+
+    // Create a map of customerId to salesStatus
+    const salesStatusMap = salesData.reduce((map, sale) => {
+      map[sale.customerId] = sale.salesStatus;
+      return map;
+    }, {});
+
+    // Add status field based on salesStatus
+    const customersWithStatus = customersData.map(customer => ({
+      ...customer,
+      status: salesStatusMap[customer.customerId] || 'Unknown'
+    }));
+
     //console.log('originalUrl by get : ', req.originalUrl);
-    //console.log('Customers data by get:', { data });
-    if (error) throw error;
-    res.json(data);
+    //console.log('Customers data by get:', { customersWithStatus });
+    res.json(customersWithStatus);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -1098,14 +1166,16 @@ app.post("/api/customers", async (req, res) => {
 });
 
 // GET customer by ID
-app.get("/api/customers/:id", async (req, res) => {
+app.get("/api/customers/*", async (req, res) => {
   try {
-   // console.log('saleData by id:: ', req.params.id);
+   // console.log('saleData by id:: ', req.params[0]);
+    const encodedId = req.params[0];
+    const decodedId = decodeURIComponent(encodedId);
     // Fetch customer data
     const { data: customer, error: customerError } = await supabase
       .from('customers')
       .select('*')
-      .eq('customerId', req.params.id)
+      .eq('customerId', decodedId)
       .single();
    // console.log('customerData by id:: ', { customer });
 
@@ -1118,7 +1188,7 @@ app.get("/api/customers/:id", async (req, res) => {
     const { data: sales, error: salesError } = await supabase
       .from('sales')
       .select('*')
-      .eq('customerId', req.params.id)
+      .eq('customerId', decodedId)
       .single();
     //console.log('saleData:: ', { sales });
 
@@ -1127,22 +1197,25 @@ app.get("/api/customers/:id", async (req, res) => {
       throw salesError;
     }
 
-    // Apply interest for cash sales if lastpaymentDate has passed and remainingAmount > 0
+    // Apply recurring interest for cash sales if overdue
     if (sales && sales.saleType === 'Cash' && sales.lastpaymentDate && sales.remainingAmount > 0) {
-      const today = new Date().toISOString().split('T')[0];
-      if (sales.lastpaymentDate < today) {
-        const newRemainingAmount = parseFloat(sales.remainingAmount) * 1.175;
-        // Update the database with new remainingAmount and set lastpaymentDate to future to prevent repeat
+      const today = new Date();
+      const lastPaymentDate = new Date(sales.lastpaymentDate);
+      if (lastPaymentDate < today) {
+        const daysOverdue = Math.floor((today - lastPaymentDate) / (1000 * 60 * 60 * 24));
+        const interestRate = 0.175 / 365; // 17.5% annual interest rate daily
+        const interestAmount = parseFloat(sales.remainingAmount) * interestRate * daysOverdue;
+        const newRemainingAmount = parseFloat(sales.remainingAmount) + interestAmount;
+        // Update the database with new remainingAmount
         const { error: updateError } = await supabase
           .from('sales')
-          .update({ remainingAmount: newRemainingAmount, lastpaymentDate: '2099-01-01' })
-          .eq('customerId', req.params.id);
+          .update({ remainingAmount: newRemainingAmount })
+          .eq('customerId', decodedId);
         if (updateError) {
           console.error('Error updating interest:', updateError);
         } else {
           // Update the local sales object for response
           sales.remainingAmount = newRemainingAmount;
-          sales.lastpaymentDate = '2099-01-01';
         }
       }
     }

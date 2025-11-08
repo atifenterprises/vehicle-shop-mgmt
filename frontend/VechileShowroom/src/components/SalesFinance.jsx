@@ -163,7 +163,8 @@ const SalesFinance = () => {
     .reduce((sum, item) => sum + (item.sale.totalAmount || 0), 0);
 
   const handleRowClick = (customer) => {
-    navigate(`/customers/${customer.customer.customerId}`, { state: { customer, from: 'sales-finance' } });
+    const encodedId = encodeURIComponent(customer.customer.customerId);
+    navigate(`/customers/${encodedId}`, { state: { customer, from: 'sales-finance' } });
   };
 
   const generateReportHTML = (customers) => {

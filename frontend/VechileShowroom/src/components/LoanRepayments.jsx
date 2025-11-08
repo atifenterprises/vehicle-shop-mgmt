@@ -152,7 +152,8 @@ const LoanRepayments = () => {
 
   const handleRowClick = (customer) => {
     console.log('Handlerroclick : ', customer);
-    navigate(`/customers/${customer.customerId}`, { state: { customer, from: 'loan-repayments' } });
+    const encodedId = encodeURIComponent(customer.customerId);
+    navigate(`/customers/${encodedId}`, { state: { customer, from: 'loan-repayments' } });
   };
 
   const generateReportHTML = (customers) => {
