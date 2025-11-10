@@ -1316,6 +1316,7 @@ app.put('/api/customers/:customerId', async (req, res) => {
     tenure: parseInt(formData.tenure) || 0,
     firstEMIDate: formData.firstEmiDate || null,
     EMIAmount: parseFloat(formData.emiAmount) || 0,
+    interestRate:parseFloat(formData.interestRate),
     emiSchedule: (formData.emiSchedule && Array.isArray(formData.emiSchedule)) ? formData.emiSchedule.map(emi => ({
       emiNo: parseInt(emi.emiNo) || 0,
       date: emi.date || '',
@@ -1434,7 +1435,7 @@ app.put('/api/customers/:customerId', async (req, res) => {
     } else {
       return res.status(400).json({ error: 'Invalid sale type. Must be Cash or Finance.' });
     }
-
+    console.log('rpcParams :: ', rpcParams);
     // Call the appropriate Supabase RPC function
     const { data, error } = await supabase.rpc(rpcFunctionName, rpcParams);
 

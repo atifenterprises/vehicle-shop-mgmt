@@ -249,6 +249,7 @@ const CustomerDetail = () => {
         throw new Error('Names, Vehicle Number, and Sale Type are required');
       }
       const requestBody = { ...customer, lastpaymentDate: customer.promisedPaymentDate };
+      console.log('interstRate : ',requestBody);
       const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/customers/${encodeURIComponent(customer.customerId)}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
