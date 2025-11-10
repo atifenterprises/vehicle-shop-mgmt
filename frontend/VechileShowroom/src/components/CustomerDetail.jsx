@@ -69,8 +69,7 @@ const CustomerDetail = () => {
       if (!response.ok) {
         throw new Error('Failed to fetch customer data');
       }
-      const data = await response.json();    
-      console.log('Data customer :', data);
+      const data = await response.json();
       setCustomer({
         customerId: data.customer?.customerId || '',
         date: data.customer?.date || '',
@@ -113,8 +112,7 @@ const CustomerDetail = () => {
         promisedPaymentDate: data.sales?.lastpaymentDate || '',
         interest: 0,
       });
-      console.log('Interest Rate from API:', data.sales?.interestRate);
-      console.log('Full sales data:', data.sales);
+
 
 
 
@@ -132,7 +130,6 @@ const CustomerDetail = () => {
       //console.log('useeffect fetch customer: ', decodedId)
       fetchCustomerData(decodedId);
     } else if (customerFromState) { // If customer data is passed from state (from Customer.jsx), use it
-      console.log('customerFromState :: ', { customerFromState });
       setCustomer(customerFromState);
     }
   }, [customerFromState, decodedId]);
@@ -222,7 +219,7 @@ const CustomerDetail = () => {
         i === index ? { ...emi, status: newStatus, overdueCharges: newStatus === 'Overdue' ? 650 : 0 } : emi
       );
       const updatedWithBuckets = updateBuckets(updatedEmiSchedule);
-      console.log('Updated EMI Schedule:', updatedWithBuckets); // Log to verify
+
       return {
         ...prev,
         emiSchedule: updatedWithBuckets
@@ -251,11 +248,11 @@ const CustomerDetail = () => {
       if (!customer.name || !customer.vehicleNumber || !customer.saleType) {
         throw new Error('Names, Vehicle Number, and Sale Type are required');
       }
-      console.log('handleupdate customer record:',customer);
+      const requestBody = { ...customer, lastpaymentDate: customer.promisedPaymentDate };
       const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/customers/${encodeURIComponent(customer.customerId)}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(customer)
+        body: JSON.stringify(requestBody)
       })
 
       if (!response.ok) {
@@ -264,7 +261,7 @@ const CustomerDetail = () => {
       }
 
       const data = await response.json();
-      console.log('Update Response:', data);
+
 
       alert('Customer updated successfully');
 

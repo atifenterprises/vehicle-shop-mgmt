@@ -1355,6 +1355,19 @@ app.put('/api/customers/:customerId', async (req, res) => {
   }
 
   try {
+    // Fetch existing sales data to preserve interestRate if not provided for Finance
+    let existingInterestRate = null;
+    if (reqObj.saleType === 'Finance' && (!reqObj.interestRate || reqObj.interestRate === '')) {
+      const { data: existingSale, error: fetchError } = await supabase
+        .from('sales')
+        .select('interestRate')
+        .eq('customerId', customerId)
+        .single();
+      if (!fetchError && existingSale) {
+        existingInterestRate = existingSale.interestRate;
+      }
+    }
+
     let rpcFunctionName;
     let rpcParams;
 
@@ -1415,7 +1428,7 @@ app.put('/api/customers/:customerId', async (req, res) => {
         p_sale_date: reqObj.saleDate,
         p_first_emi_date: reqObj.firstEMIDate || null,
         p_emi_amount: parseFloat(reqObj.EMIAmount) || 0,
-        p_interest_rate: parseFloat(reqObj.interestRate) || 0,
+        p_interest_rate: (reqObj.interestRate !== null && reqObj.interestRate !== undefined && reqObj.interestRate !== '') ? parseFloat(reqObj.interestRate) : (existingInterestRate !== null ? existingInterestRate : 0),
         p_emi_schedule: reqObj.emiSchedule || null
       };
     } else {
