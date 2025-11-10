@@ -142,6 +142,25 @@ export const generateLetterHTML = (customer, company) => {
                   <td><strong>Promised Payment Date:</strong> ${customer.promisedPaymentDate}</td>
                   <td><strong>Payment Status:</strong> ${customer.salesStatus}</td>
                 </tr>
+                ${(() => {
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+                  const promisedDate = new Date(customer.promisedPaymentDate);
+                  promisedDate.setHours(0, 0, 0, 0);
+                  if (promisedDate < today) {
+                    const remaining = parseFloat(customer.totalAmount) - parseFloat(customer.paidAmount);
+                    const daysOverdue = Math.floor((today - promisedDate) / (1000 * 60 * 60 * 24));
+                    const interest = Math.round(remaining * 0.175 / 365 * daysOverdue);
+                    const total = remaining + interest;
+                    return `
+                <tr>
+                  <td><strong>Interest (17.5% p.a. on Remaining for ${daysOverdue} days):</strong> ₹${interest} + Remaining ₹${remaining} = Total ₹${total}</td>
+                  <td colspan="2"></td>
+                </tr>
+                `;
+                  }
+                  return '';
+                })()}
               ` : ''}
             </table>
 

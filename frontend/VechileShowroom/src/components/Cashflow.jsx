@@ -136,7 +136,8 @@ const Cashflow = () => {
     };
 
     const handleRowClick = (customer) => {
-        navigate(`/customers/${customer.customer.customerId}`, { state: { customer, from: 'cashflow' } });
+        const encodedId = encodeURIComponent(customer.customer.customerId);
+        navigate(`/customers/${encodedId}`, { state: { customer, from: 'cashflow' } });
     };
 
     // Calculate metrics from filteredCashflows
